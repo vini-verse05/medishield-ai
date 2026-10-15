@@ -1,0 +1,94 @@
+{% extends "base.html" %} {% block title %}DB Check · MediShield AI{% endblock
+%} {% block content %}
+<h1 class="h4 mb-3">
+  Database Check <span class="badge bg-warning text-dark">temporary</span>
+</h1>
+
+{% if error %}
+<div class="alert alert-danger">
+  <strong>Database error:</strong> {{ error }}<br />
+  Run <code>flask --app app init-db</code> then
+  <code>flask --app app seed-db</code>.
+</div>
+{% else %}
+<div class="row g-2 mb-4">
+  {% for table, n in counts.items() %}
+  <div class="col-6 col-md">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <div class="fs-4">{{ n }}</div>
+        <div class="small text-muted">{{ table }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 class="h6">Users</h2>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Username</th>
+      <th>Name</th>
+      <th>Role</th>
+      <th>Active</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.full_name }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ 'Yes' if u.is_active else 'No' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="h6">Patients (with record counts, from a JOIN)</h2>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr>
+      <th>MRN</th>
+      <th>Name</th>
+      <th>Records</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in patients %}
+    <tr>
+      <td>{{ p.mrn }}</td>
+      <td>{{ p.name }}</td>
+      <td>{{ p.record_count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="h6">Latest activity logs</h2>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr>
+      <th>Time (UTC)</th>
+      <th>Actor</th>
+      <th>Action</th>
+      <th>Resource</th>
+      <th>Success</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in logs %}
+    <tr>
+      <td>{{ l.timestamp }}</td>
+      <td>{{ l.actor }}</td>
+      <td>{{ l.action }}</td>
+      <td>{{ l.resource_type or '-' }} {{ l.resource_id or '' }}</td>
+      <td>{{ 'Yes' if l.success else 'No' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %} {% endblock %}

@@ -1,0 +1,54 @@
+import sqlite3
+
+from flask import Blueprint, jsonify, render_template
+
+from database import get_db
+
+bp = Blueprint("main", __name__)
+
+TABLES = ["users", "patients", "medical_records", "activity_logs", "alerts"]
+
+
+@bp.route("/")
+def index():
+    return render_template("index.html")
+
+
+@bp.route("/health")
+def health():
+    try:
+        get_db().execute("SELECT 1").fetchone()
+        return jsonify(status="ok", database="connected")
+    except sqlite3.Error as exc:
+        return jsonify(status="error", database=str(exc)), 500
+
+
+# TEMPORARY verification page for Part 1. It will be removed or restricted
+# to administrators once authentication is added in Part 2.
+@bp.route("/db-check")
+def db_check():
+    db = get_db()
+    try:
+        counts = {t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in TABLES}
+        users = db.execute(
+            "SELECT id, username, full_name, role, is_active FROM users ORDER BY id"
+        ).fetchall()
+        patients = db.execute(
+            "SELECT p.mrn, p.first_name || ' ' || p.last_name AS name, "
+            "COUNT(m.id) AS record_count "
+            "FROM patients p LEFT JOIN medical_records m ON m.patient_id = p.id "
+            "GROUP BY p.id ORDER BY p.id"
+        ).fetchall()
+        logs = db.execute(
+            "SELECT l.timestamp, COALESCE(u.username, l.username_attempted) AS actor, "
+            "l.action, l.resource_type, l.resource_id, l.success "
+            "FROM activity_logs l LEFT JOIN users u ON u.id = l.user_id "
+            "ORDER BY l.id DESC LIMIT 10"
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        return render_template("db_check.html", error=str(exc)), 500
+
+    return render_template(
+        "db_check.html", error=None, counts=counts, users=users,
+        patients=patients, logs=logs,
+    )
