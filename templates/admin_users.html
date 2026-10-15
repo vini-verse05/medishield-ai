@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% block title %}Users · MediShield AI{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Users and roles</h1>
+<table class="table table-sm table-bordered bg-white">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Username</th>
+      <th>Name</th>
+      <th>Role</th>
+      <th>Department</th>
+      <th>Active</th>
+      <th>Failed logins</th>
+      <th>Created (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.full_name }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.department or '-' }}</td>
+      <td>{{ 'Yes' if u.is_active else 'No' }}</td>
+      <td>{{ u.failed_login_count }}</td>
+      <td>{{ u.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,8 +1,9 @@
 import sqlite3
 
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, g, jsonify, render_template
 
 from database import get_db
+from security import ROLE_PERMISSIONS, login_required, permission_required
 
 bp = Blueprint("main", __name__)
 
@@ -19,13 +20,20 @@ def health():
     try:
         get_db().execute("SELECT 1").fetchone()
         return jsonify(status="ok", database="connected")
-    except sqlite3.Error as exc:
-        return jsonify(status="error", database=str(exc)), 500
+    except sqlite3.Error:
+        return jsonify(status="error", database="unavailable"), 500
 
 
-# TEMPORARY verification page for Part 1. It will be removed or restricted
-# to administrators once authentication is added in Part 2.
+@bp.route("/dashboard")
+@login_required
+def dashboard():
+    permissions = sorted(ROLE_PERMISSIONS.get(g.user["role"], set()))
+    return render_template("dashboard.html", permissions=permissions)
+
+
+# Temporary verification page from Part 1. Now restricted to administrators.
 @bp.route("/db-check")
+@permission_required("view_db_check")
 def db_check():
     db = get_db()
     try:

@@ -1,0 +1,44 @@
+{% extends "base.html" %} {% block title %}Dashboard · MediShield AI{% endblock
+%} {% block content %}
+<h1 class="h4 mb-3">Welcome, {{ g.user.full_name }}</h1>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h6">Your account</h2>
+        <table class="table table-sm mb-0">
+          <tr>
+            <th>Username</th>
+            <td>{{ g.user.username }}</td>
+          </tr>
+          <tr>
+            <th>Role</th>
+            <td><span class="badge bg-primary">{{ g.user.role }}</span></td>
+          </tr>
+          <tr>
+            <th>Department</th>
+            <td>{{ g.user.department or '-' }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h6">Permissions granted to your role</h2>
+        {% for p in permissions %}
+        <span class="badge bg-light text-dark border me-1 mb-1">{{ p }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info mt-3 mb-0">
+  {% if can('view_users') %} As an administrator you can open the
+  <a href="{{ url_for('admin.users') }}">Users</a> page. {% endif %} Patient and
+  medical-record pages will be added in Part 3.
+</div>
+{% endblock %}

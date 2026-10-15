@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block title %}Log in · MediShield AI{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Sign in</h1>
+        <form method="post" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="next" value="{{ next or '' }}" />
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              required
+              autofocus
+            />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Log in</button>
+        </form>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-body py-2 small text-muted">
+        <strong>Demo accounts (sample data, remove before any real use)</strong
+        ><br />
+        admin · dr_sharma · dr_mehta · nurse_priya · nurse_rahul ·
+        recep_anita<br />
+        Password for all: <code>Demo@1234</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -4,11 +4,19 @@
   <p class="mb-3">
     Intelligent insider threat detection for secure Electronic Health Records.
   </p>
-  <span class="badge bg-success">Part 1: Backend foundation running</span>
-  <hr />
-  <a class="btn btn-primary btn-sm" href="{{ url_for('main.db_check') }}"
-    >Database check</a
+  <span class="badge bg-success"
+    >Part 2: Authentication and access control</span
   >
+  <hr />
+  {% if g.user %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('main.dashboard') }}"
+    >Go to dashboard</a
+  >
+  {% else %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('auth.login') }}"
+    >Log in</a
+  >
+  {% endif %}
   <a
     class="btn btn-outline-secondary btn-sm"
     href="{{ url_for('main.health') }}"

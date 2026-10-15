@@ -108,8 +108,8 @@ def main():
     r = client.get("/health")
     check("GET /health returns ok", r.status_code == 200 and r.get_json()["status"] == "ok")
     r = client.get("/db-check")
-    check("GET /db-check returns 200 and shows data",
-          r.status_code == 200 and b"MRN-0001" in r.data)
+    check("GET /db-check now requires login (redirects to /login)",
+          r.status_code == 302 and "/login" in r.headers["Location"])
 
     shutil.rmtree(tmp, ignore_errors=True)
     print(f"\nAll {passed} checks passed.")

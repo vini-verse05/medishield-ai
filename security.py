@@ -1,0 +1,132 @@
+"""Authentication helpers, role-based access control, CSRF protection and
+security headers. Every permission check happens on the server."""
+import functools
+import hmac
+import secrets
+
+from flask import abort, flash, g, redirect, request, session, url_for
+
+from database import get_db
+
+# Single source of truth for what each role may do. Part 3 may refine this.
+ROLE_PERMISSIONS = {
+    "admin": {
+        "view_users",
+        "view_audit_logs",
+        "view_alerts",
+        "review_alerts",
+        "view_db_check",
+    },
+    "doctor": {
+        "view_patients",
+        "view_patient_details",
+        "view_medical_records",
+        "update_patient",
+        "create_medical_record",
+        "update_medical_record",
+    },
+    "nurse": {
+        "view_patients",
+        "view_patient_details",
+        "view_medical_records",
+        "create_medical_record",
+    },
+    "receptionist": {
+        "view_patients",          # demographics only (enforced in Part 3)
+        "register_patient",
+        "update_patient_contact",
+    },
+}
+
+
+def has_permission(role, permission):
+    return permission in ROLE_PERMISSIONS.get(role, set())
+
+
+# ---------------------------------------------------------------- current user
+def load_current_user():
+    """Runs before every request. Sets g.user from the database, or None."""
+    g.user = None
+    user_id = session.get("user_id")
+    if user_id is None:
+        return
+    user = get_db().execute(
+        "SELECT id, username, full_name, role, department, is_active "
+        "FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    if user is None or not user["is_active"]:
+        session.clear()  # deleted or deactivated account: drop the session
+        return
+    g.user = user
+
+
+# ------------------------------------------------------------------ decorators
+def login_required(view):
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if g.user is None:
+            flash("Please log in to continue.", "warning")
+            if request.method == "GET":
+                target = request.full_path if request.query_string else request.path
+                return redirect(url_for("auth.login", next=target))
+            return redirect(url_for("auth.login"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def permission_required(permission):
+    def decorator(view):
+        @functools.wraps(view)
+        @login_required
+        def wrapped(*args, **kwargs):
+            if not has_permission(g.user["role"], permission):
+                # Part 3 will write an access-violation entry to activity_logs here.
+                abort(403)
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+# ------------------------------------------------------------------------ CSRF
+def get_csrf_token():
+    if "_csrf_token" not in session:
+        session["_csrf_token"] = secrets.token_urlsafe(32)
+    return session["_csrf_token"]
+
+
+def csrf_protect():
+    """Reject any state-changing request that lacks a valid CSRF token."""
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        sent = request.form.get("csrf_token") or request.headers.get("X-CSRFToken", "")
+        expected = session.get("_csrf_token", "")
+        if not expected or not hmac.compare_digest(sent, expected):
+            abort(400, description="Invalid or missing CSRF token. Reload the page and try again.")
+
+
+# --------------------------------------------------------------- app integration
+def inject_template_helpers():
+    def can(permission):
+        user = g.get("user")
+        return user is not None and has_permission(user["role"], permission)
+
+    return {"csrf_token": get_csrf_token, "can": can}
+
+
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    if g.get("user") is not None:
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def init_app(app):
+    app.before_request(load_current_user)  # must run before csrf_protect
+    app.before_request(csrf_protect)
+    app.context_processor(inject_template_helpers)
+    app.after_request(add_security_headers)

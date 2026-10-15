@@ -14,14 +14,59 @@
     />
   </head>
   <body>
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
       <div class="container">
         <a class="navbar-brand" href="{{ url_for('main.index') }}"
           >🛡️ MediShield AI</a
         >
-        <span class="navbar-text small">Prototype · Sample data only</span>
+        <ul class="navbar-nav me-auto">
+          {% if g.user %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.dashboard') }}"
+              >Dashboard</a
+            >
+          </li>
+          {% if can('view_users') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin.users') }}">Users</a>
+          </li>
+          {% endif %} {% if can('view_db_check') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.db_check') }}"
+              >DB check</a
+            >
+          </li>
+          {% endif %} {% endif %}
+        </ul>
+        {% if g.user %}
+        <span class="navbar-text small me-3">
+          {{ g.user.full_name }}
+          <span class="badge bg-secondary">{{ g.user.role }}</span>
+        </span>
+        <form
+          method="post"
+          action="{{ url_for('auth.logout') }}"
+          class="d-inline"
+        >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn-outline-light btn-sm">
+            Log out
+          </button>
+        </form>
+        {% else %}
+        <a
+          class="btn btn-outline-light btn-sm"
+          href="{{ url_for('auth.login') }}"
+          >Log in</a
+        >
+        {% endif %}
       </div>
     </nav>
-    <main class="container my-4">{% block content %}{% endblock %}</main>
+    <main class="container my-4">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% for
+      category, message in messages %}
+      <div class="alert alert-{{ category }} py-2">{{ message }}</div>
+      {% endfor %} {% endwith %} {% block content %}{% endblock %}
+    </main>
   </body>
 </html>
