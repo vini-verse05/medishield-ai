@@ -5,3 +5,5 @@ instance/
 .env
 *.db
 .vscode/
+ml/data/
+ml/models/

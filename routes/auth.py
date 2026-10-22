@@ -4,6 +4,7 @@ from flask import (Blueprint, flash, g, redirect, render_template, request,
                    session, url_for)
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from audit import log_activity
 from database import get_db
 
 bp = Blueprint("auth", __name__)
@@ -36,7 +37,8 @@ def login():
 
         db = get_db()
         user = db.execute(
-            "SELECT id, password_hash, is_active FROM users WHERE username = ?",
+            "SELECT id, username, role, password_hash, is_active "
+            "FROM users WHERE username = ?",
             (username,),
         ).fetchone()
 
@@ -48,17 +50,25 @@ def login():
             session["user_id"] = user["id"]
             session.permanent = True
             db.execute("UPDATE users SET failed_login_count = 0 WHERE id = ?", (user["id"],))
-            db.commit()
+            log_activity("login", user=user)  # also commits the reset above
             return redirect(next_url if is_safe_next(next_url) else url_for("main.dashboard"))
 
-        if user is not None and not password_ok:
-            db.execute(
-                "UPDATE users SET failed_login_count = failed_login_count + 1 WHERE id = ?",
-                (user["id"],),
-            )
-            db.commit()
+        # ---- failed attempt: record it (the user sees one generic message) ----
+        if user is not None:
+            if not password_ok:
+                db.execute(
+                    "UPDATE users SET failed_login_count = failed_login_count + 1 "
+                    "WHERE id = ?",
+                    (user["id"],),
+                )
+                reason = "wrong password"
+            else:
+                reason = "inactive account"
+            log_activity("login_failed", user=user, success=False, details=reason)
+        else:
+            log_activity("login_failed", user=None, username_attempted=username,
+                         success=False, details="unknown username")
 
-        # Same message for unknown user, wrong password and inactive account.
         flash("Invalid username or password.", "danger")
         return render_template("login.html", next=next_url), 401
 
@@ -67,6 +77,8 @@ def login():
 
 @bp.route("/logout", methods=["POST"])
 def logout():
+    if g.user is not None:
+        log_activity("logout")
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("auth.login"))

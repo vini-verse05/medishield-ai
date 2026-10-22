@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · MediShield AI{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">{{ title }}</h1>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for name, label, kind in field_defs %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ name }}">{{ label }}</label>
+        {% if name in editable %}
+          {% if kind == 'gender' %}
+            <select class="form-select" id="{{ name }}" name="{{ name }}" required>
+              <option value="">Select...</option>
+              {% for opt in genders %}
+                <option value="{{ opt }}" {% if values.get(name) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          {% elif kind == 'blood' %}
+            <select class="form-select" id="{{ name }}" name="{{ name }}">
+              {% for opt in blood_groups %}
+                <option value="{{ opt }}" {% if (values.get(name) or '') == opt %}selected{% endif %}>{{ opt or 'Unknown' }}</option>
+              {% endfor %}
+            </select>
+          {% elif kind == 'textarea' %}
+            <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="2" maxlength="200">{{ values.get(name) or '' }}</textarea>
+          {% elif kind == 'date' %}
+            <input type="date" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ values.get(name) or '' }}" required>
+          {% else %}
+            <input type="text" class="form-control" id="{{ name }}" name="{{ name }}" value="{{ values.get(name) or '' }}" maxlength="50">
+          {% endif %}
+        {% else %}
+          <div class="form-control-plaintext">{{ static.get(name) or '-' }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    {% if mode == 'edit' and editable|length < field_defs|length %}
+      <p class="small text-muted">Fields shown as plain text are not editable with your role.</p>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Cancel</a>
+  </form>
+</div></div>
+{% endblock %}

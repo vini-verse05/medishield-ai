@@ -37,8 +37,12 @@
 </div>
 
 <div class="alert alert-info mt-3 mb-0">
-  {% if can('view_users') %} As an administrator you can open the
-  <a href="{{ url_for('admin.users') }}">Users</a> page. {% endif %} Patient and
-  medical-record pages will be added in Part 3.
+  {% if can('view_patients') %} Open the
+  <a href="{{ url_for('patients.list_patients') }}">Patients</a> page to search
+  and view records. {% endif %} {% if can('view_audit_logs') %} Review system
+  activity in the <a href="{{ url_for('admin.audit_logs') }}">Audit logs</a>. {%
+  endif %} <br /><small
+    >All access to patient data is recorded in the audit log.</small
+  >
 </div>
 {% endblock %}

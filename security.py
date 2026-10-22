@@ -6,9 +6,10 @@ import secrets
 
 from flask import abort, flash, g, redirect, request, session, url_for
 
+from audit import log_activity
 from database import get_db
 
-# Single source of truth for what each role may do. Part 3 may refine this.
+# Single source of truth for what each role may do.
 ROLE_PERMISSIONS = {
     "admin": {
         "view_users",
@@ -32,7 +33,7 @@ ROLE_PERMISSIONS = {
         "create_medical_record",
     },
     "receptionist": {
-        "view_patients",          # demographics only (enforced in Part 3)
+        "view_patients",          # demographics only (enforced in routes/patients.py)
         "register_patient",
         "update_patient_contact",
     },
@@ -76,13 +77,21 @@ def login_required(view):
     return wrapped
 
 
-def permission_required(permission):
+def permission_required(*permissions):
+    """Allow the request if the user's role has ANY of the listed permissions.
+    A denied request is written to the audit log before the 403 is returned."""
     def decorator(view):
         @functools.wraps(view)
         @login_required
         def wrapped(*args, **kwargs):
-            if not has_permission(g.user["role"], permission):
-                # Part 3 will write an access-violation entry to activity_logs here.
+            if not any(has_permission(g.user["role"], p) for p in permissions):
+                log_activity(
+                    "access_denied",
+                    resource_type="route",
+                    success=False,
+                    details=f"{request.method} {request.path} requires "
+                            f"{' or '.join(permissions)}",
+                )
                 abort(403)
             return view(*args, **kwargs)
 
@@ -103,7 +112,9 @@ def csrf_protect():
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         sent = request.form.get("csrf_token") or request.headers.get("X-CSRFToken", "")
         expected = session.get("_csrf_token", "")
-        if not expected or not hmac.compare_digest(sent, expected):
+        if not expected or not hmac.compare_digest(sent.encode(), expected.encode()):
+            log_activity("csrf_failure", success=False,
+                         details=f"{request.method} {request.path}")
             abort(400, description="Invalid or missing CSRF token. Reload the page and try again.")
 
 

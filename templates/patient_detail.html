@@ -1,0 +1,107 @@
+{% extends "base.html" %} {% block title %}{{ patient.mrn }} · MediShield AI{%
+endblock %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">
+    {{ patient.first_name }} {{ patient.last_name }}
+    <small class="text-muted">{{ patient.mrn }}</small>
+  </h1>
+  <div>
+    <a
+      class="btn btn-outline-secondary btn-sm"
+      href="{{ url_for('patients.list_patients') }}"
+      >Back to list</a
+    >
+    {% if can('update_patient') or can('update_patient_contact') %}
+    <a
+      class="btn btn-primary btn-sm"
+      href="{{ url_for('patients.edit_patient', patient_id=patient.id) }}"
+      >Edit</a
+    >
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h2 class="h6">Demographics</h2>
+    <table class="table table-sm mb-0">
+      <tr>
+        <th style="width: 30%">Date of birth</th>
+        <td>{{ patient.date_of_birth }}</td>
+      </tr>
+      <tr>
+        <th>Gender</th>
+        <td>{{ patient.gender or '-' }}</td>
+      </tr>
+      <tr>
+        <th>Phone</th>
+        <td>{{ patient.phone or '-' }}</td>
+      </tr>
+      <tr>
+        <th>Address</th>
+        <td>{{ patient.address or '-' }}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+{% if show_clinical %}
+<div class="card mb-3">
+  <div class="card-body">
+    <h2 class="h6">Clinical summary</h2>
+    <table class="table table-sm mb-0">
+      <tr>
+        <th style="width: 30%">Blood group</th>
+        <td>{{ patient.blood_group or '-' }}</td>
+      </tr>
+      <tr>
+        <th>Allergies</th>
+        <td>{{ patient.allergies or '-' }}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+{% endif %} {% if show_records %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h2 class="h6 mb-0">Medical records ({{ records|length }})</h2>
+  {% if can('create_medical_record') %}
+  <a
+    class="btn btn-success btn-sm"
+    href="{{ url_for('patients.new_record', patient_id=patient.id) }}"
+    >Add record</a
+  >
+  {% endif %}
+</div>
+{% for r in records %}
+<div class="card mb-2">
+  <div class="card-body py-2">
+    <div class="d-flex justify-content-between">
+      <div>
+        <span class="badge bg-info text-dark">{{ r.record_type }}</span>
+        <strong class="ms-1">{{ r.diagnosis }}</strong>
+      </div>
+      <div class="small text-muted">
+        {{ r.created_at }} UTC by {{ r.created_by_name }} {% if
+        can('update_medical_record') %} ·
+        <a href="{{ url_for('patients.edit_record', record_id=r.id) }}">Edit</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if r.treatment %}
+    <div class="small mt-1"><strong>Treatment:</strong> {{ r.treatment }}</div>
+    {% endif %} {% if r.notes %}
+    <div class="small pre-wrap"><strong>Notes:</strong> {{ r.notes }}</div>
+    {% endif %} {% if r.updated_at %}
+    <div class="small text-muted">
+      Last updated {{ r.updated_at }} UTC by {{ r.updated_by_name }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<p class="text-muted">No medical records for this patient.</p>
+{% endfor %} {% else %}
+<div class="alert alert-secondary py-2 small">
+  Your role can view demographic information only.
+</div>
+{% endif %} {% endblock %}

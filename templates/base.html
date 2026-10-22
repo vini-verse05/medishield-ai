@@ -26,9 +26,21 @@
               >Dashboard</a
             >
           </li>
-          {% if can('view_users') %}
+          {% if can('view_patients') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('patients.list_patients') }}"
+              >Patients</a
+            >
+          </li>
+          {% endif %} {% if can('view_users') %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('admin.users') }}">Users</a>
+          </li>
+          {% endif %} {% if can('view_audit_logs') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin.audit_logs') }}"
+              >Audit logs</a
+            >
           </li>
           {% endif %} {% if can('view_db_check') %}
           <li class="nav-item">

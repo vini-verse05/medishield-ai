@@ -8,6 +8,7 @@ from config import Config
 from routes.admin import bp as admin_bp
 from routes.auth import bp as auth_bp
 from routes.main import bp as main_bp
+from routes.patients import bp as patients_bp
 
 ERROR_TEXT = {
     400: ("Bad request", None),  # None -> show the specific description
@@ -44,6 +45,7 @@ def create_app(test_config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(patients_bp)
 
     register_error_handlers(app)
     return app
