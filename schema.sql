@@ -1,4 +1,4 @@
--- MediShield AI database schema (Part 1)
+-- MediShield AI database schema (Parts 1 and 5)
 -- Timestamps are stored as UTC text: 'YYYY-MM-DD HH:MM:SS'
 
 CREATE TABLE IF NOT EXISTS users (
@@ -63,11 +63,12 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- One alert per flagged user-day (see idx_alerts_user_date below).
 CREATE TABLE IF NOT EXISTS alerts (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    activity_log_id INTEGER,
+    activity_log_id INTEGER,                       -- latest log row of that user-day at analysis time
     user_id         INTEGER,
-    anomaly_score   REAL,                          -- filled by ML pipeline (Part 5)
+    anomaly_score   REAL,                          -- higher = more unusual for the user's role
     risk_level      TEXT NOT NULL
                     CHECK (risk_level IN ('low', 'medium', 'high', 'critical')),
     explanation     TEXT,
@@ -75,9 +76,27 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     reviewed_by     INTEGER,
     reviewed_at     TEXT,
+    alert_date      TEXT,                          -- local date of the analysed user-day (Part 5)
+    threshold       REAL,                          -- the role's threshold when scored (Part 5)
+    signals_json    TEXT,                          -- contributing signals as JSON (Part 5)
     FOREIGN KEY (activity_log_id) REFERENCES activity_logs(id) ON DELETE SET NULL,
     FOREIGN KEY (user_id)         REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (reviewed_by)     REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Model output for every analysed user-day, flagged or not (Part 5).
+CREATE TABLE IF NOT EXISTS analysis_results (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL,
+    role            TEXT NOT NULL,
+    result_date     TEXT NOT NULL,                 -- local date, YYYY-MM-DD
+    anomaly_score   REAL NOT NULL,
+    threshold       REAL NOT NULL,
+    is_anomaly      INTEGER NOT NULL CHECK (is_anomaly IN (0, 1)),
+    features_json   TEXT NOT NULL,
+    scored_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, result_date),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_records_patient   ON medical_records(patient_id);
@@ -85,3 +104,6 @@ CREATE INDEX IF NOT EXISTS idx_logs_user         ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp    ON activity_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_logs_action       ON activity_logs(action);
 CREATE INDEX IF NOT EXISTS idx_alerts_status     ON alerts(status);
+CREATE INDEX IF NOT EXISTS idx_results_date      ON analysis_results(result_date);
+-- Duplicate guard: at most one alert per user per day (rows with NULL date are exempt).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_user_date ON alerts(user_id, alert_date);

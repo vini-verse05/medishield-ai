@@ -2,10 +2,12 @@ import os
 
 from flask import Flask, render_template
 
+import analysis
 import database
 import security
 from config import Config
 from routes.admin import bp as admin_bp
+from routes.alerts import bp as alerts_bp
 from routes.auth import bp as auth_bp
 from routes.main import bp as main_bp
 from routes.patients import bp as patients_bp
@@ -40,12 +42,14 @@ def create_app(test_config=None):
     os.makedirs(os.path.dirname(app.config["DATABASE"]), exist_ok=True)
 
     database.init_app(app)
+    analysis.init_app(app)
     security.init_app(app)
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(patients_bp)
+    app.register_blueprint(alerts_bp)
 
     register_error_handlers(app)
     return app

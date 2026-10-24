@@ -32,6 +32,12 @@
               >Patients</a
             >
           </li>
+          {% endif %} {% if can('view_alerts') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('alerts.list_alerts') }}"
+              >Alerts</a
+            >
+          </li>
           {% endif %} {% if can('view_users') %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('admin.users') }}">Users</a>
