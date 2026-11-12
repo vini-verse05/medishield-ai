@@ -17,3 +17,6 @@ class Config:
     SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
     # Permanent sessions are refreshed on each request, so this acts as an idle timeout.
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+
+    # Show the demo accounts on the login page. Set SHOW_DEMO_CREDENTIALS=0 to hide.
+    SHOW_DEMO_CREDENTIALS = os.environ.get("SHOW_DEMO_CREDENTIALS", "1") == "1"

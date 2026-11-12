@@ -11,7 +11,7 @@
       <th>Department</th>
       <th>Active</th>
       <th>Failed logins</th>
-      <th>Created (UTC)</th>
+      <th>Created (IST)</th>
     </tr>
   </thead>
   <tbody>
@@ -24,7 +24,7 @@
       <td>{{ u.department or '-' }}</td>
       <td>{{ 'Yes' if u.is_active else 'No' }}</td>
       <td>{{ u.failed_login_count }}</td>
-      <td>{{ u.created_at }}</td>
+      <td>{{ u.created_at|localtime }}</td>
     </tr>
     {% endfor %}
   </tbody>

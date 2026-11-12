@@ -81,7 +81,7 @@ endblock %} {% block content %}
         <strong class="ms-1">{{ r.diagnosis }}</strong>
       </div>
       <div class="small text-muted">
-        {{ r.created_at }} UTC by {{ r.created_by_name }} {% if
+        {{ r.created_at|localtime }} IST by {{ r.created_by_name }} {% if
         can('update_medical_record') %} ·
         <a href="{{ url_for('patients.edit_record', record_id=r.id) }}">Edit</a>
         {% endif %}
@@ -93,7 +93,7 @@ endblock %} {% block content %}
     <div class="small pre-wrap"><strong>Notes:</strong> {{ r.notes }}</div>
     {% endif %} {% if r.updated_at %}
     <div class="small text-muted">
-      Last updated {{ r.updated_at }} UTC by {{ r.updated_by_name }}
+      Last updated {{ r.updated_at|localtime }} IST by {{ r.updated_by_name }}
     </div>
     {% endif %}
   </div>

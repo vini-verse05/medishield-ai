@@ -2,9 +2,39 @@
 %} {% block content %}
 <h1 class="h4 mb-3">Welcome, {{ g.user.full_name }}</h1>
 
+<div class="row g-3 mb-3">
+  {% if staff.patients is not none %}
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body py-3">
+        <div class="stat-label">Patients in system</div>
+        <div class="stat-value">{{ staff.patients }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %} {% if staff.medical_records is not none %}
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body py-3">
+        <div class="stat-label">Medical records</div>
+        <div class="stat-value">{{ staff.medical_records }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body py-3">
+        <div class="stat-label">Your actions today</div>
+        <div class="stat-value">{{ staff.my_events_today }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-md-5">
-    <div class="card">
+    <div class="card h-100">
       <div class="card-body">
         <h2 class="h6">Your account</h2>
         <table class="table table-sm mb-0">
@@ -25,7 +55,7 @@
     </div>
   </div>
   <div class="col-md-7">
-    <div class="card">
+    <div class="card h-100">
       <div class="card-body">
         <h2 class="h6">Permissions granted to your role</h2>
         {% for p in permissions %}
@@ -36,7 +66,41 @@
   </div>
 </div>
 
-<div class="alert alert-info mt-3 mb-0">
+<h2 class="h6 mt-4">Your recent activity</h2>
+<div class="table-responsive">
+  <table class="table table-sm table-bordered bg-white small">
+    <thead>
+      <tr>
+        <th>Time (IST)</th>
+        <th>Action</th>
+        <th>Resource</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in staff.my_recent %}
+      <tr>
+        <td>{{ e.timestamp|localtime }}</td>
+        <td>{{ e.action }}</td>
+        <td>
+          {{ e.resource_type or '-' }}{% if e.resource_id %} #{{ e.resource_id
+          }}{% endif %}
+        </td>
+        <td>
+          {% if e.success %}<span class="badge bg-success">OK</span>{% else
+          %}<span class="badge bg-danger">Failed</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted">No activity yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="alert alert-info mb-0">
   {% if can('view_patients') %} Open the
   <a href="{{ url_for('patients.list_patients') }}">Patients</a> page to search
   and view records. {% endif %} {% if can('view_audit_logs') %} Review system

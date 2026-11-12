@@ -1,3 +1,14 @@
 body { background-color: #f4f6f9; }
 .card { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
 .pre-wrap { white-space: pre-wrap; }
+
+/* Dashboard */
+.stat-card .stat-label {
+  font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.stat-card .stat-value { font-size: 1.8rem; font-weight: 600; line-height: 1.15; }
+.chart-box { position: relative; height: 260px; }
+
+/* Navigation */
+.navbar .nav-link.active { color: #fff; font-weight: 600; border-bottom: 2px solid #0d6efd; }
+footer { border-top: 1px solid #dee2e6; padding-top: 0.75rem; }

@@ -1,6 +1,10 @@
-import os
+from datetime import datetime, timedelta
 
-from flask import Flask, render_template
+from ml import settings
+import os
+import sqlite3
+
+from flask import Flask, g, render_template
 
 import analysis
 import database
@@ -32,6 +36,33 @@ def register_error_handlers(app):
         app.register_error_handler(code, handler)
 
 
+def register_nav_counts(app):
+    """Gives every template the number of new alerts (administrators only)."""
+    @app.context_processor
+    def nav_counts():
+        user = g.get("user")
+        count = 0
+        if user is not None and security.has_permission(user["role"], "view_alerts"):
+            try:
+                count = database.get_db().execute(
+                    "SELECT COUNT(*) FROM alerts WHERE status = 'new'").fetchone()[0]
+            except sqlite3.Error:
+                count = 0
+        return {"new_alert_count": count}
+
+def register_filters(app):
+    @app.template_filter("localtime")
+    def localtime(value):
+        """Show a stored UTC timestamp in local time (ml.settings offset)."""
+        if not value:
+            return value
+        try:
+            dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        except (ValueError, TypeError):
+            return value
+        local = dt + timedelta(minutes=settings.TIMEZONE_OFFSET_MINUTES)
+        return local.strftime("%Y-%m-%d %H:%M:%S")
+
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -44,6 +75,8 @@ def create_app(test_config=None):
     database.init_app(app)
     analysis.init_app(app)
     security.init_app(app)
+    register_nav_counts(app)
+    register_filters(app)
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)

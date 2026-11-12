@@ -33,15 +33,18 @@
         </form>
       </div>
     </div>
+    {% if config.SHOW_DEMO_CREDENTIALS %}
     <div class="card mt-3">
       <div class="card-body py-2 small text-muted">
         <strong>Demo accounts (sample data, remove before any real use)</strong
         ><br />
         admin · dr_sharma · dr_mehta · nurse_priya · nurse_rahul ·
         recep_anita<br />
-        Password for all: <code>Demo@1234</code>
+        Password for all: <code>Demo@1234</code><br />
+        <em>Hide this box by setting SHOW_DEMO_CREDENTIALS=0.</em>
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

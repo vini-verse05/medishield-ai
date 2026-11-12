@@ -54,8 +54,8 @@ AI{% endblock %} {% block content %} {% set colors = {'low': 'secondary',
             </td>
           </tr>
           <tr>
-            <th>Created (UTC)</th>
-            <td>{{ alert.created_at }}</td>
+            <th>Created (IST)</th>
+            <td>{{ alert.created_at|localtime }}</td>
           </tr>
           <tr>
             <th>Status</th>
@@ -64,8 +64,8 @@ AI{% endblock %} {% block content %} {% set colors = {'low': 'secondary',
                 >New</span
               >
               {% else %}<span class="badge bg-success">Reviewed</span>
-              by {{ alert.reviewer or '-' }} at {{ alert.reviewed_at }} UTC{%
-              endif %}
+              by {{ alert.reviewer|localtime or '-' }} at {{
+              alert.reviewed_at|localtime }} IST{% endif %}
             </td>
           </tr>
         </table>
@@ -120,7 +120,7 @@ AI{% endblock %} {% block content %} {% set colors = {'low': 'secondary',
     <thead>
       <tr>
         <th>Log ID</th>
-        <th>Time (UTC)</th>
+        <th>Time (IST)</th>
         <th>Action</th>
         <th>Resource</th>
         <th>Records</th>
@@ -131,7 +131,7 @@ AI{% endblock %} {% block content %} {% set colors = {'low': 'secondary',
       {% for e in events %}
       <tr>
         <td>{{ e.id }}</td>
-        <td>{{ e.timestamp }}</td>
+        <td>{{ e.timestamp|localtime }}</td>
         <td>{{ e.action }}</td>
         <td>
           {{ e.resource_type or '-' }}{% if e.resource_id %} #{{ e.resource_id

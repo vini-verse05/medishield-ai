@@ -1,9 +1,11 @@
 import sqlite3
 
-from flask import Blueprint, g, jsonify, render_template
+from flask import Blueprint, flash, g, jsonify, render_template
 
+import dashboard_data
 from database import get_db
-from security import ROLE_PERMISSIONS, login_required, permission_required
+from security import (ROLE_PERMISSIONS, has_permission, login_required,
+                      permission_required)
 
 bp = Blueprint("main", __name__)
 
@@ -27,11 +29,27 @@ def health():
 @bp.route("/dashboard")
 @login_required
 def dashboard():
-    permissions = sorted(ROLE_PERMISSIONS.get(g.user["role"], set()))
-    return render_template("dashboard.html", permissions=permissions)
+    role = g.user["role"]
+    db = get_db()
+
+    if has_permission(role, "view_alerts"):
+        try:
+            data = dashboard_data.admin_dashboard(db)
+            return render_template("dashboard_admin.html", data=data)
+        except sqlite3.OperationalError:
+            flash("The dashboard needs the latest database schema. "
+                  "Run: flask --app app migrate-db", "danger")
+
+    staff = dashboard_data.staff_dashboard(
+        db, g.user["id"],
+        include_patients=has_permission(role, "view_patients"),
+        include_records=has_permission(role, "view_medical_records"),
+    )
+    permissions = sorted(ROLE_PERMISSIONS.get(role, set()))
+    return render_template("dashboard.html", permissions=permissions, staff=staff)
 
 
-# Temporary verification page from Part 1. Now restricted to administrators.
+# Verification page from Part 1, restricted to administrators.
 @bp.route("/db-check")
 @permission_required("view_db_check")
 def db_check():
