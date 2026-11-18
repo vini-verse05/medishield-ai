@@ -1,26 +1,64 @@
-{% extends "base.html" %} {% block content %}
-<div class="p-4 bg-light border rounded">
-  <h1 class="h3">MediShield AI</h1>
-  <p class="mb-3">
-    Intelligent insider threat detection for secure Electronic Health Records.
+{#
+  Public landing page: what the system is, how it works in three steps,
+  and what each role can do.
+#}
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Secure patient records, watched for unusual access</h1>
+  <p>
+    MediShield AI is a prototype electronic health record system. It keeps a log of
+    everything staff do, learns what a normal day looks like for each role, and
+    raises an alert when someone's day looks different.
   </p>
-  <span class="badge bg-success"
-    >Part 2: Authentication and access control</span
-  >
-  <hr />
-  {% if g.user %}
-  <a class="btn btn-primary btn-sm" href="{{ url_for('main.dashboard') }}"
-    >Go to dashboard</a
-  >
-  {% else %}
-  <a class="btn btn-primary btn-sm" href="{{ url_for('auth.login') }}"
-    >Log in</a
-  >
-  {% endif %}
-  <a
-    class="btn btn-outline-secondary btn-sm"
-    href="{{ url_for('main.health') }}"
-    >Health (JSON)</a
-  >
+  <div class="page-actions">
+    {% if g.user %}
+      <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Go to dashboard</a>
+    {% else %}
+      <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Log in</a>
+    {% endif %}
+  </div>
+</section>
+
+<h2 class="section-title">How it works</h2>
+<div class="steps">
+  <div class="step">
+    <span class="step-no">1</span>
+    <h3>Every action is logged</h3>
+    <p>Logins, searches, record views and edits are written to an audit log by the server.</p>
+  </div>
+  <div class="step">
+    <span class="step-no">2</span>
+    <h3>Each role has its own baseline</h3>
+    <p>A model learns the usual activity of doctors, nurses, receptionists and administrators.</p>
+  </div>
+  <div class="step">
+    <span class="step-no">3</span>
+    <h3>Unusual days become alerts</h3>
+    <p>An administrator reads the reasons, investigates and marks each alert as reviewed.</p>
+  </div>
 </div>
+
+<h2 class="section-title section-gap">What each role can do</h2>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead><tr><th>Role</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td><span class="chip chip-role">doctor</span></td><td>Search patients, read full records, edit patients, add and edit medical records</td></tr>
+        <tr><td><span class="chip chip-role">nurse</span></td><td>Search patients, read full records, add nursing notes</td></tr>
+        <tr><td><span class="chip chip-role">receptionist</span></td><td>See basic patient details only, register patients, update phone and address</td></tr>
+        <tr><td><span class="chip chip-role">admin</span></td><td>Manage oversight: users, audit logs and alerts. No access to patient data</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer class="container app-footer">
+  MediShield AI is an academic prototype that uses fictional sample data.
+  Alerts are warnings for investigation, not proof of misuse.
+  <a href="{{ url_for('main.health') }}">System status</a>
+</footer>
 {% endblock %}

@@ -1,3 +1,4 @@
+"""Administrator pages: the user list and the audit log viewer."""
 from math import ceil
 
 from flask import Blueprint, render_template, request
@@ -8,13 +9,13 @@ from security import permission_required
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
-PAGE_SIZE = 50
+PAGE_SIZE = 50  # audit log entries per page
 
 
 @bp.route("/users")
 @permission_required("view_users")
 def users():
-    # password_hash is deliberately never selected.
+    """List every account and its role. Password hashes are never selected."""
     rows = get_db().execute(
         "SELECT id, username, full_name, role, department, is_active, "
         "failed_login_count, created_at FROM users ORDER BY id"
@@ -22,10 +23,11 @@ def users():
     return render_template("admin_users.html", users=rows)
 
 
-# Read-only: this blueprint has no route that edits or deletes activity logs.
 @bp.route("/audit-logs")
 @permission_required("view_audit_logs")
 def audit_logs():
+    """Read-only audit log with filters and paging. This blueprint has no route
+    that changes or removes log entries."""
     db = get_db()
     action = request.args.get("action", "")
     username = request.args.get("user", "").strip()[:64]

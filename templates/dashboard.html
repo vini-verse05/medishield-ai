@@ -1,112 +1,82 @@
-{% extends "base.html" %} {% block title %}Dashboard · MediShield AI{% endblock
-%} {% block content %}
-<h1 class="h4 mb-3">Welcome, {{ g.user.full_name }}</h1>
-
-<div class="row g-3 mb-3">
-  {% if staff.patients is not none %}
-  <div class="col-6 col-md-3">
-    <div class="card stat-card h-100">
-      <div class="card-body py-3">
-        <div class="stat-label">Patients in system</div>
-        <div class="stat-value">{{ staff.patients }}</div>
-      </div>
-    </div>
+{#
+  Dashboard for doctors, nurses and receptionists: record counts the role may
+  see, the person's own activity today, their account and permissions.
+#}
+{% extends "base.html" %}
+{% from "_components.html" import result_chip, resource, role_chip %}
+{% block title %}Dashboard · MediShield AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Welcome, {{ g.user.full_name }}</h1>
+    <p class="page-sub">Signed in as {{ g.user.role }}{% if g.user.department %} in {{ g.user.department }}{% endif %}.</p>
   </div>
-  {% endif %} {% if staff.medical_records is not none %}
-  <div class="col-6 col-md-3">
-    <div class="card stat-card h-100">
-      <div class="card-body py-3">
-        <div class="stat-label">Medical records</div>
-        <div class="stat-value">{{ staff.medical_records }}</div>
-      </div>
-    </div>
+  {% if can('view_patients') %}
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('patients.list_patients') }}">Find a patient</a>
   </div>
   {% endif %}
-  <div class="col-6 col-md-3">
-    <div class="card stat-card h-100">
-      <div class="card-body py-3">
-        <div class="stat-label">Your actions today</div>
-        <div class="stat-value">{{ staff.my_events_today }}</div>
-      </div>
-    </div>
-  </div>
 </div>
 
-<div class="row g-3">
+<div class="stat-strip">
+  {% if staff.patients is not none %}
+  <div class="stat"><div class="stat-label">Patients in system</div><div class="stat-value">{{ staff.patients }}</div></div>
+  {% endif %}
+  {% if staff.medical_records is not none %}
+  <div class="stat"><div class="stat-label">Medical records</div><div class="stat-value">{{ staff.medical_records }}</div></div>
+  {% endif %}
+  <div class="stat"><div class="stat-label">Your actions today</div><div class="stat-value">{{ staff.my_events_today }}</div></div>
+</div>
+
+<div class="row g-3 mb-4">
   <div class="col-md-5">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Your account</h2>
-        <table class="table table-sm mb-0">
-          <tr>
-            <th>Username</th>
-            <td>{{ g.user.username }}</td>
-          </tr>
-          <tr>
-            <th>Role</th>
-            <td><span class="badge bg-primary">{{ g.user.role }}</span></td>
-          </tr>
-          <tr>
-            <th>Department</th>
-            <td>{{ g.user.department or '-' }}</td>
-          </tr>
-        </table>
-      </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Your account</h2>
+      <dl class="kv">
+        <dt>Username</dt><dd>{{ g.user.username }}</dd>
+        <dt>Role</dt><dd>{{ role_chip(g.user.role) }}</dd>
+        <dt>Department</dt><dd>{{ g.user.department or '-' }}</dd>
+      </dl>
     </div>
   </div>
   <div class="col-md-7">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Permissions granted to your role</h2>
-        {% for p in permissions %}
-        <span class="badge bg-light text-dark border me-1 mb-1">{{ p }}</span>
-        {% endfor %}
-      </div>
+    <div class="panel h-100">
+      <h2 class="section-title">What your role can do</h2>
+      {% for p in permissions %}
+        <span class="chip chip-perm me-1 mb-1">{{ p|replace('_', ' ') }}</span>
+      {% endfor %}
     </div>
   </div>
 </div>
 
-<h2 class="h6 mt-4">Your recent activity</h2>
-<div class="table-responsive">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>Time (IST)</th>
-        <th>Action</th>
-        <th>Resource</th>
-        <th>Result</th>
-      </tr>
-    </thead>
-    <tbody>
+<h2 class="section-title">Your recent activity</h2>
+<div class="table-wrap mb-4">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead><tr><th>Time (IST)</th><th>Action</th><th>Resource</th><th>Result</th></tr></thead>
+      <tbody>
       {% for e in staff.my_recent %}
-      <tr>
-        <td>{{ e.timestamp|localtime }}</td>
-        <td>{{ e.action }}</td>
-        <td>
-          {{ e.resource_type or '-' }}{% if e.resource_id %} #{{ e.resource_id
-          }}{% endif %}
-        </td>
-        <td>
-          {% if e.success %}<span class="badge bg-success">OK</span>{% else
-          %}<span class="badge bg-danger">Failed</span>{% endif %}
-        </td>
-      </tr>
+        <tr>
+          <td>{{ e.timestamp|localtime }}</td>
+          <td>{{ e.action }}</td>
+          <td>{{ resource(e.resource_type, e.resource_id) }}</td>
+          <td>{{ result_chip(e.success) }}</td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="4" class="text-center text-muted">No activity yet.</td>
-      </tr>
+        <tr><td colspan="4" class="empty-row">No activity yet.</td></tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<div class="alert alert-info mb-0">
-  {% if can('view_patients') %} Open the
-  <a href="{{ url_for('patients.list_patients') }}">Patients</a> page to search
-  and view records. {% endif %} {% if can('view_audit_logs') %} Review system
-  activity in the <a href="{{ url_for('admin.audit_logs') }}">Audit logs</a>. {%
-  endif %} <br /><small
-    >All access to patient data is recorded in the audit log.</small
-  >
+<div class="note note-info mb-0">
+  {% if can('view_patients') %}
+    Open the <a href="{{ url_for('patients.list_patients') }}">Patients</a> page to search and view records.
+  {% endif %}
+  {% if can('view_audit_logs') %}
+    Review system activity in the <a href="{{ url_for('admin.audit_logs') }}">Audit logs</a>.
+  {% endif %}
+  All access to patient data is recorded in the audit log.
 </div>
 {% endblock %}

@@ -1,5 +1,8 @@
--- MediShield AI database schema (Parts 1 and 5)
+-- MediShield AI database schema.
+-- Tables: users, patients, medical_records, activity_logs (audit log),
+--         alerts and analysis_results (machine learning output).
 -- Timestamps are stored as UTC text: 'YYYY-MM-DD HH:MM:SS'
+-- Safe to run repeatedly: every statement uses IF NOT EXISTS.
 
 CREATE TABLE IF NOT EXISTS users (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,15 +79,15 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     reviewed_by     INTEGER,
     reviewed_at     TEXT,
-    alert_date      TEXT,                          -- local date of the analysed user-day (Part 5)
-    threshold       REAL,                          -- the role's threshold when scored (Part 5)
-    signals_json    TEXT,                          -- contributing signals as JSON (Part 5)
+    alert_date      TEXT,                          -- local date of the analysed user-day
+    threshold       REAL,                          -- the role's threshold when scored
+    signals_json    TEXT,                          -- contributing signals as JSON
     FOREIGN KEY (activity_log_id) REFERENCES activity_logs(id) ON DELETE SET NULL,
     FOREIGN KEY (user_id)         REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (reviewed_by)     REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Model output for every analysed user-day, flagged or not (Part 5).
+-- Model output for every analysed user-day, flagged or not.
 CREATE TABLE IF NOT EXISTS analysis_results (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id         INTEGER NOT NULL,

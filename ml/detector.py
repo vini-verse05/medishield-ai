@@ -1,4 +1,7 @@
-"""Loads the trained models and scores feature rows. Part 5 will call this."""
+"""Detector: loads the trained models and scores daily activity.
+
+analysis.py uses it to score real activity logs; ml/evaluate.py uses it to
+measure accuracy on test data."""
 import os
 
 import joblib
@@ -8,6 +11,8 @@ from ml import settings
 
 
 class Detector:
+    """Wraps the saved training bundle: one model per role, plus thresholds and baselines."""
+
     def __init__(self, bundle):
         self.bundle = bundle
         self.models = bundle["models"]
@@ -18,6 +23,7 @@ class Detector:
 
     @classmethod
     def load(cls, path=settings.MODEL_PATH):
+        """Load a saved model file. Raises FileNotFoundError if it has not been trained."""
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path} not found. Run: python -m ml.train")
         return cls(joblib.load(path))

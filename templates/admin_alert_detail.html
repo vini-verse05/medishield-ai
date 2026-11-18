@@ -1,156 +1,95 @@
-{% extends "base.html" %} {% block title %}Alert #{{ alert.id }} · MediShield
-AI{% endblock %} {% block content %} {% set colors = {'low': 'secondary',
-'medium': 'warning text-dark', 'high': 'danger', 'critical': 'dark'} %}
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 mb-0">
-    Alert #{{ alert.id }}
-    <span class="badge bg-{{ colors[alert.risk_level] }}"
-      >{{ alert.risk_level|upper }}</span
-    >
-  </h1>
-  <a
-    class="btn btn-outline-secondary btn-sm"
-    href="{{ url_for('alerts.list_alerts') }}"
-    >Back to alerts</a
-  >
+{#
+  One alert in detail: who and when, the score, why it was flagged, the day's
+  behaviour measures and the log rows behind them. Administrators can mark it
+  as reviewed from here.
+#}
+{% extends "base.html" %}
+{% from "_components.html" import risk_chip, result_chip, status_chip, role_chip, resource %}
+{% block title %}Alert #{{ alert.id }} · MediShield AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Alert #{{ alert.id }} {{ risk_chip(alert.risk_level) }} {{ status_chip(alert.status) }}</h1>
+    <p class="page-sub">{{ alert.username or '-' }} on {{ alert.alert_date or '-' }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline-primary" href="{{ url_for('alerts.list_alerts') }}">Back to alerts</a>
+    {% if alert.status == 'new' and can('review_alerts') %}
+    <form method="post" action="{{ url_for('alerts.review', alert_id=alert.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-success">Mark as reviewed</button>
+    </form>
+    {% endif %}
+  </div>
 </div>
 
-<div class="alert alert-warning py-2 small">
-  This alert is a <strong>warning for investigation</strong>, not proof of
-  malicious intent.
+<div class="note">
+  This alert is a <strong>warning for investigation</strong>, not proof of malicious intent.
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-4">
   <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="h6">Summary</h2>
-        <table class="table table-sm mb-0">
-          <tr>
-            <th style="width: 35%">User</th>
-            <td>{{ alert.username or '-' }} ({{ alert.full_name or '-' }})</td>
-          </tr>
-          <tr>
-            <th>Role</th>
-            <td>{{ alert.user_role or '-' }}</td>
-          </tr>
-          <tr>
-            <th>Day analysed (local)</th>
-            <td>{{ alert.alert_date or '-' }}</td>
-          </tr>
-          <tr>
-            <th>Anomaly score</th>
-            <td>
-              {{ '%.4f'|format(alert.anomaly_score) if alert.anomaly_score is
-              not none else '-' }}
-            </td>
-          </tr>
-          <tr>
-            <th>Role threshold</th>
-            <td>
-              {{ '%.4f'|format(alert.threshold) if alert.threshold is not none
-              else '-' }}
-            </td>
-          </tr>
-          <tr>
-            <th>Created (IST)</th>
-            <td>{{ alert.created_at|localtime }}</td>
-          </tr>
-          <tr>
-            <th>Status</th>
-            <td>
-              {% if alert.status == 'new' %}<span class="badge bg-primary"
-                >New</span
-              >
-              {% else %}<span class="badge bg-success">Reviewed</span>
-              by {{ alert.reviewer|localtime or '-' }} at {{
-              alert.reviewed_at|localtime }} IST{% endif %}
-            </td>
-          </tr>
-        </table>
-      </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Summary</h2>
+      <dl class="kv">
+        <dt>User</dt><dd>{{ alert.username or '-' }} ({{ alert.full_name or '-' }})</dd>
+        <dt>Role</dt><dd>{{ role_chip(alert.user_role) }}</dd>
+        <dt>Day analysed (local)</dt><dd>{{ alert.alert_date or '-' }}</dd>
+        <dt>Anomaly score</dt><dd>{{ '%.4f'|format(alert.anomaly_score) if alert.anomaly_score is not none else '-' }}</dd>
+        <dt>Role threshold</dt><dd>{{ '%.4f'|format(alert.threshold) if alert.threshold is not none else '-' }}</dd>
+        <dt>Created (IST)</dt><dd>{{ alert.created_at|localtime }}</dd>
+        <dt>Status</dt>
+        <dd>
+          {% if alert.status == 'new' %}New
+          {% else %}Reviewed by {{ alert.reviewer or '-' }} at {{ alert.reviewed_at|localtime }} IST{% endif %}
+        </dd>
+      </dl>
     </div>
   </div>
   <div class="col-md-6">
-    <div class="card">
-      <div class="card-body">
-        <h2 class="h6">Why it was flagged</h2>
-        <p class="small">{{ alert.explanation or '-' }}</p>
-        {% if signals %}
-        <ul class="small mb-0">
-          {% for s in signals %}
-          <li>{{ s.text }}</li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-      </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Why it was flagged</h2>
+      <p class="small">{{ alert.explanation or '-' }}</p>
+      {% if signals %}
+      <ul class="small mb-0">
+        {% for s in signals %}<li>{{ s.text }}</li>{% endfor %}
+      </ul>
+      {% endif %}
     </div>
   </div>
 </div>
 
-{% if alert.status == 'new' and can('review_alerts') %}
-<form
-  method="post"
-  action="{{ url_for('alerts.review', alert_id=alert.id) }}"
-  class="mb-3"
->
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-  <button type="submit" class="btn btn-success btn-sm">Mark as reviewed</button>
-</form>
-{% endif %} {% if features %}
-<div class="card mb-3">
-  <div class="card-body">
-    <h2 class="h6">Behaviour measures for that day</h2>
-    <table class="table table-sm mb-0 small">
-      {% for name, value in features.items() %}
-      <tr>
-        <th style="width: 45%">{{ labels.get(name, name) }}</th>
-        <td>{{ value|round(1) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
+{% if features %}
+<div class="panel mb-4">
+  <h2 class="section-title">Behaviour measures for that day</h2>
+  <dl class="kv">
+    {% for name, value in features.items() %}
+    <dt>{{ labels.get(name, name) }}</dt><dd>{{ value|round(1) }}</dd>
+    {% endfor %}
+  </dl>
 </div>
 {% endif %}
 
-<h2 class="h6">Activity that day (latest {{ max_events }})</h2>
-<div class="table-responsive">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>Log ID</th>
-        <th>Time (IST)</th>
-        <th>Action</th>
-        <th>Resource</th>
-        <th>Records</th>
-        <th>Result</th>
-      </tr>
-    </thead>
-    <tbody>
+<h2 class="section-title">Activity that day (latest {{ max_events }})</h2>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead><tr><th>Log ID</th><th>Time (IST)</th><th>Action</th><th>Resource</th><th>Records</th><th>Result</th></tr></thead>
+      <tbody>
       {% for e in events %}
-      <tr>
-        <td>{{ e.id }}</td>
-        <td>{{ e.timestamp|localtime }}</td>
-        <td>{{ e.action }}</td>
-        <td>
-          {{ e.resource_type or '-' }}{% if e.resource_id %} #{{ e.resource_id
-          }}{% endif %}
-        </td>
-        <td>{{ e.records_accessed }}</td>
-        <td>
-          {% if e.success %}<span class="badge bg-success">OK</span>{% else
-          %}<span class="badge bg-danger">Failed</span>{% endif %}
-        </td>
-      </tr>
+        <tr>
+          <td>{{ e.id }}</td>
+          <td>{{ e.timestamp|localtime }}</td>
+          <td>{{ e.action }}</td>
+          <td>{{ resource(e.resource_type, e.resource_id) }}</td>
+          <td>{{ e.records_accessed }}</td>
+          <td>{{ result_chip(e.success) }}</td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">
-          No log rows found for that day.
-        </td>
-      </tr>
+        <tr><td colspan="6" class="empty-row">No log rows found for that day.</td></tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

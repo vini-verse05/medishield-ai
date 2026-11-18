@@ -1,0 +1,26 @@
+{# Small reusable pieces: import with  {% from "_components.html" import risk_chip %} #}
+
+{# Risk level label (low, medium, high, critical). #}
+{% macro risk_chip(level) -%}
+<span class="chip chip-dot chip-{{ level }}">{{ level|capitalize }}</span>
+{%- endmacro %}
+
+{# Result of an action: OK or Failed. #}
+{% macro result_chip(ok) -%}
+{% if ok %}<span class="chip chip-ok">OK</span>{% else %}<span class="chip chip-fail">Failed</span>{% endif %}
+{%- endmacro %}
+
+{# Alert status: New or Reviewed. #}
+{% macro status_chip(status) -%}
+{% if status == 'new' %}<span class="chip chip-new">New</span>{% else %}<span class="chip chip-ok">Reviewed</span>{% endif %}
+{%- endmacro %}
+
+{# Role label (doctor, nurse, ...). #}
+{% macro role_chip(role) -%}
+{% if role %}<span class="chip chip-role">{{ role }}</span>{% else %}-{% endif %}
+{%- endmacro %}
+
+{# "patient #4" style resource text. #}
+{% macro resource(kind, rid) -%}
+{{ kind or '-' }}{% if rid %} #{{ rid }}{% endif %}
+{%- endmacro %}

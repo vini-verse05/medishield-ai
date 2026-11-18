@@ -1,5 +1,6 @@
-"""Authentication helpers, role-based access control, CSRF protection and
-security headers. Every permission check happens on the server."""
+"""Security layer: who is logged in, what each role may do, CSRF protection
+and security headers. Every permission check happens on the server, so
+hiding a menu link is never the only protection."""
 import functools
 import hmac
 import secrets
@@ -9,7 +10,7 @@ from flask import abort, flash, g, redirect, request, session, url_for
 from audit import log_activity
 from database import get_db
 
-# Single source of truth for what each role may do.
+# What each role may do. Routes check these names; nothing else grants access.
 ROLE_PERMISSIONS = {
     "admin": {
         "view_users",
@@ -41,6 +42,7 @@ ROLE_PERMISSIONS = {
 
 
 def has_permission(role, permission):
+    """True if the role has the named permission."""
     return permission in ROLE_PERMISSIONS.get(role, set())
 
 
@@ -64,6 +66,7 @@ def load_current_user():
 
 # ------------------------------------------------------------------ decorators
 def login_required(view):
+    """Send visitors who are not logged in to the login page."""
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
         if g.user is None:
@@ -102,6 +105,7 @@ def permission_required(*permissions):
 
 # ------------------------------------------------------------------------ CSRF
 def get_csrf_token():
+    """Return this session's CSRF token, creating it on first use."""
     if "_csrf_token" not in session:
         session["_csrf_token"] = secrets.token_urlsafe(32)
     return session["_csrf_token"]
@@ -118,8 +122,9 @@ def csrf_protect():
             abort(400, description="Invalid or missing CSRF token. Reload the page and try again.")
 
 
-# --------------------------------------------------------------- app integration
+# ------------------------------------------------------------- app integration
 def inject_template_helpers():
+    """Make csrf_token() and can(permission) available in every template."""
     def can(permission):
         user = g.get("user")
         return user is not None and has_permission(user["role"], permission)
@@ -128,6 +133,7 @@ def inject_template_helpers():
 
 
 def add_security_headers(response):
+    """Add browser protections; pages for logged-in users are never cached."""
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "same-origin")
@@ -137,6 +143,7 @@ def add_security_headers(response):
 
 
 def init_app(app):
+    """Turn on user loading, CSRF checks, template helpers and security headers."""
     app.before_request(load_current_user)  # must run before csrf_protect
     app.before_request(csrf_protect)
     app.context_processor(inject_template_helpers)

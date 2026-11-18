@@ -1,6 +1,11 @@
-"""Connects the application's activity_logs to the Part 4 ML pipeline:
-logs -> features -> Isolation Forest score -> stored result -> alert.
-Run from the web (admin button) or with:  flask --app app analyze"""
+"""Anomaly analysis: connects the audit log to the machine learning model.
+
+Flow: activity logs -> daily features per user -> Isolation Forest score ->
+stored result -> alert for an administrator.
+
+Run it from the web (the "Run analysis now" button) or from the command line:
+    flask --app app analyze
+"""
 import json
 from datetime import datetime
 
@@ -15,13 +20,14 @@ from ml.detector import Detector
 from ml.explain import build_explanation, build_signals, determine_risk
 from ml.features import REQUIRED_COLUMNS, extract_features
 
-# The fictional rows inserted by seed_data.py carry this marker; they are
-# placeholders, not user behaviour, so they are never analysed.
+# The placeholder rows added by seed_data.py carry this marker. They are not
+# real user behaviour, so they are left out of analysis and statistics.
 SAMPLE_MARKER = "SAMPLE DATA"
 
 
 def get_detector():
-    """Tests may inject a detector via app.config['ML_DETECTOR']."""
+    """Load the trained model (tests can supply one with app.config['ML_DETECTOR']).
+    Raises FileNotFoundError if the model has not been trained yet."""
     injected = current_app.config.get("ML_DETECTOR")
     if injected is not None:
         return injected
@@ -29,6 +35,7 @@ def get_detector():
 
 
 def load_events(db):
+    """Read the real activity-log rows into a table the feature code can use."""
     rows = db.execute(
         "SELECT " + ", ".join(REQUIRED_COLUMNS) + " FROM activity_logs "
         "WHERE COALESCE(details, '') <> ? ORDER BY id",
@@ -112,7 +119,7 @@ def run_analysis(db, detector, since_date=None):
                  json.dumps(signals), existing["id"]),
             )
             summary["alerts_updated"] += 1
-        else:  # already reviewed: never reopened or overwritten
+        else:  # already reviewed: leave it exactly as the administrator left it
             summary["alerts_skipped_reviewed"] += 1
 
     db.commit()
@@ -120,6 +127,7 @@ def run_analysis(db, detector, since_date=None):
 
 
 def summary_text(s):
+    """One-line, human-readable summary of an analysis run."""
     return (f"Analyzed {s['days_analyzed']} user-days; {s['flagged']} flagged. "
             f"Alerts: {s['alerts_created']} new, {s['alerts_updated']} updated, "
             f"{s['alerts_skipped_reviewed']} left unchanged (already reviewed).")
@@ -143,4 +151,5 @@ def analyze_command(since):
 
 
 def init_app(app):
+    """Register the `flask analyze` command."""
     app.cli.add_command(analyze_command)

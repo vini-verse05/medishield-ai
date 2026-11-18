@@ -1,0 +1,6 @@
+{# Flash messages (success, error and info notices set by the server). #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }} py-2">{{ message }}</div>
+  {% endfor %}
+{% endwith %}

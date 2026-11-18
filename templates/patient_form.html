@@ -1,12 +1,23 @@
+{#
+  Form for registering or editing a patient. Fields the viewer's role may not
+  change are shown as plain text; the server also ignores them if submitted.
+#}
 {% extends "base.html" %}
 {% block title %}{{ title }} · MediShield AI{% endblock %}
 {% block content %}
-<h1 class="h4 mb-3">{{ title }}</h1>
-<div class="card"><div class="card-body">
+<div class="page-head">
+  <div>
+    <h1>{{ title }}</h1>
+    <p class="page-sub">Use fictional sample data only.</p>
+  </div>
+</div>
+
+<div class="panel form-card">
   <form method="post" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="row g-3">
     {% for name, label, kind in field_defs %}
-      <div class="mb-3">
+      <div class="{{ 'col-12' if name in ('address', 'allergies') else 'col-md-6' }}">
         <label class="form-label" for="{{ name }}">{{ label }}</label>
         {% if name in editable %}
           {% if kind == 'gender' %}
@@ -34,11 +45,16 @@
         {% endif %}
       </div>
     {% endfor %}
+    </div>
+
     {% if mode == 'edit' and editable|length < field_defs|length %}
-      <p class="small text-muted">Fields shown as plain text are not editable with your role.</p>
+      <p class="small muted mt-3 mb-0">Fields shown as plain text cannot be changed with your role.</p>
     {% endif %}
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Cancel</a>
+
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Cancel</a>
+    </div>
   </form>
-</div></div>
+</div>
 {% endblock %}

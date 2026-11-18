@@ -1,77 +1,50 @@
-{% extends "base.html" %} {% block title %}Patients · MediShield AI{% endblock
-%} {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 mb-0">Patients</h1>
+{# Patient search and list. Every search and list is recorded in the audit log. #}
+{% extends "base.html" %}
+{% block title %}Patients · MediShield AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Patients</h1>
+    <p class="page-sub">Search by name, medical record number (MRN) or phone. Viewing and searching patient data is recorded in the audit log.</p>
+  </div>
   {% if can('register_patient') %}
-  <a
-    class="btn btn-primary btn-sm"
-    href="{{ url_for('patients.register_patient') }}"
-    >Register patient</a
-  >
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('patients.register_patient') }}">Register patient</a>
+  </div>
   {% endif %}
 </div>
 
-<form method="get" class="row g-2 mb-3">
-  <div class="col-md-6">
-    <input
-      type="search"
-      class="form-control"
-      name="q"
-      value="{{ q }}"
-      maxlength="50"
-      placeholder="Search by name, MRN or phone"
-    />
-  </div>
-  <div class="col-auto">
-    <button type="submit" class="btn btn-outline-primary">Search</button>
-    {% if q %}<a
-      class="btn btn-link"
-      href="{{ url_for('patients.list_patients') }}"
-      >Clear</a
-    >{% endif %}
-  </div>
+<form method="get" class="filter-bar">
+  <input type="search" class="form-control w-auto flex-grow-1" style="max-width: 420px" name="q"
+         value="{{ q }}" maxlength="50" placeholder="Search by name, MRN or phone" aria-label="Search patients">
+  <button type="submit" class="btn btn-outline-primary">Search</button>
+  {% if q %}<a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Clear</a>{% endif %}
 </form>
 
-<table class="table table-sm table-bordered bg-white">
-  <thead>
-    <tr>
-      <th>MRN</th>
-      <th>Name</th>
-      <th>Date of birth</th>
-      <th>Gender</th>
-      <th>Phone</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in patients %}
-    <tr class="patient-row">
-      <td>{{ p.mrn }}</td>
-      <td>{{ p.first_name }} {{ p.last_name }}</td>
-      <td>{{ p.date_of_birth }}</td>
-      <td>{{ p.gender or '-' }}</td>
-      <td>{{ p.phone or '-' }}</td>
-      <td>
-        <a
-          class="btn btn-outline-primary btn-sm py-0"
-          href="{{ url_for('patients.patient_detail', patient_id=p.id) }}"
-          >Open</a
-        >
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="6" class="text-center text-muted">No patients found.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead>
+        <tr><th>MRN</th><th>Name</th><th>Date of birth</th><th>Gender</th><th>Phone</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for p in patients %}
+        <tr class="patient-row">
+          <td>{{ p.mrn }}</td>
+          <td>{{ p.first_name }} {{ p.last_name }}</td>
+          <td>{{ p.date_of_birth }}</td>
+          <td>{{ p.gender or '-' }}</td>
+          <td>{{ p.phone or '-' }}</td>
+          <td><a class="row-link" href="{{ url_for('patients.patient_detail', patient_id=p.id) }}">Open</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty-row">No patients found. Try a different name, MRN or phone number.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% if patients|length >= max_list %}
-<p class="small text-muted">
-  Showing the first {{ max_list }} results. Refine your search to narrow them.
-</p>
+<p class="small muted mt-2">Showing the first {{ max_list }} results. Refine your search to narrow them.</p>
 {% endif %}
-<p class="small text-muted">
-  Viewing and searching patient data is recorded in the audit log.
-</p>
 {% endblock %}

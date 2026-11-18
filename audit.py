@@ -1,10 +1,12 @@
-"""The one place where activity-log rows are written. Called only from server
-code; there is deliberately no function or route that updates or deletes logs."""
+"""Audit logging: the single place where activity-log rows are written.
+
+Only server code calls log_activity(). Nothing in the app updates or deletes
+log rows, so users cannot change the record of what they did."""
 from flask import g, request
 
 from database import get_db
 
-_CURRENT_USER = object()  # sentinel: "use g.user"
+_CURRENT_USER = object()  # marker meaning "use the logged-in user (g.user)"
 
 
 def log_activity(action, *, user=_CURRENT_USER, username_attempted=None,

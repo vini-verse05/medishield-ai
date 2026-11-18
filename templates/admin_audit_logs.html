@@ -1,118 +1,75 @@
-{% extends "base.html" %} {% block title %}Audit logs · MediShield AI{% endblock
-%} {% block content %}
-<h1 class="h4 mb-3">
-  Audit logs
-  <small class="text-muted fs-6">(read-only · {{ total }} matching)</small>
-</h1>
-
-<form method="get" class="row g-2 mb-3">
-  <div class="col-md-3">
-    <input
-      type="text"
-      class="form-control form-control-sm"
-      name="user"
-      value="{{ username }}"
-      placeholder="Username"
-      maxlength="64"
-    />
+{#
+  Audit log viewer (read-only). Filter by user, action and result; entries are
+  newest first and paged. Times are shown in IST; the database stores UTC.
+#}
+{% extends "base.html" %}
+{% from "_components.html" import result_chip, role_chip, resource %}
+{% block title %}Audit logs · MediShield AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Audit logs</h1>
+    <p class="page-sub">Read-only record of logins, searches, views, edits and denied requests. {{ total }} matching.</p>
   </div>
-
-  <div class="col-md-3">
-    <select class="form-select form-select-sm" name="action">
-      <option value="">All actions</option>
-      {% for a in actions %}
-      <option value="{{ a }}" {% if a == action %}selected{% endif %}>{{ a }}</option>
-        {{ a }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="col-md-2">
-    <select class="form-select form-select-sm" name="status">
-      <option value="">Any result</option>
-      <option value="success" {% if status == 'success' %}selected{% endif %}>Success</option>
-<option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed / denied</option>
-    </select>
-  </div>
-
-  <div class="col-auto">
-    <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
-    <a class="btn btn-link btn-sm" href="{{ url_for('admin.audit_logs') }}">
-      Reset
-    </a>
-  </div>
-</form>
-
-<div class="table-responsive">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Time (IST)</th>
-        <th>Actor</th>
-        <th>Role</th>
-        <th>Action</th>
-        <th>Resource</th>
-        <th>Records</th>
-        <th>Result</th>
-        <th>IP</th>
-        <th>Details</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for l in rows %}
-      <tr class="log-row">
-        <td>{{ l.id }}</td>
-        <td>{{ l.timestamp|localtime }}</td>
-        <td>{{ l.actor or '-' }}</td>
-        <td>{{ l.role or '-' }}</td>
-        <td>{{ l.action }}</td>
-        <td>
-          {{ l.resource_type or '-' }}{% if l.resource_id %} #{{ l.resource_id
-          }}{% endif %}
-        </td>
-        <td>{{ l.records_accessed }}</td>
-        <td>
-          {% if l.success %}
-          <span class="badge bg-success">OK</span>
-          {% else %}
-          <span class="badge bg-danger">Failed</span>
-          {% endif %}
-        </td>
-        <td>{{ l.ip_address or '-' }}</td>
-        <td>{{ l.details or '' }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="10" class="text-center text-muted">
-          No log entries match.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 
-<div class="d-flex justify-content-between align-items-center">
-  <span class="small text-muted">Page {{ page }} of {{ pages }}</span>
+<form method="get" class="filter-bar">
+  <input type="text" class="form-control form-control-sm w-auto" name="user" value="{{ username }}"
+         placeholder="Username" maxlength="64" aria-label="Username">
+  <select class="form-select form-select-sm w-auto" name="action" aria-label="Action">
+    <option value="">All actions</option>
+    {% for a in actions %}
+    <option value="{{ a }}" {% if a == action %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select class="form-select form-select-sm w-auto" name="status" aria-label="Result">
+    <option value="">Any result</option>
+    <option value="success" {% if status == 'success' %}selected{% endif %}>Success</option>
+    <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed / denied</option>
+  </select>
+  <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
+  <a class="btn btn-link btn-sm" href="{{ url_for('admin.audit_logs') }}">Reset</a>
+</form>
 
-  <div>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead>
+        <tr><th>ID</th><th>Time (IST)</th><th>Actor</th><th>Role</th><th>Action</th>
+            <th>Resource</th><th>Records</th><th>Result</th><th>IP</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+      {% for l in rows %}
+        <tr class="log-row">
+          <td>{{ l.id }}</td>
+          <td>{{ l.timestamp|localtime }}</td>
+          <td>{{ l.actor or '-' }}</td>
+          <td>{{ role_chip(l.role) }}</td>
+          <td>{{ l.action }}</td>
+          <td>{{ resource(l.resource_type, l.resource_id) }}</td>
+          <td>{{ l.records_accessed }}</td>
+          <td>{{ result_chip(l.success) }}</td>
+          <td>{{ l.ip_address or '-' }}</td>
+          <td class="why">{{ l.details or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="empty-row">No log entries match.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+  <span class="small muted">Page {{ page }} of {{ pages }}</span>
+  <div class="d-flex gap-2">
     {% if page > 1 %}
-    <a
-      class="btn btn-outline-secondary btn-sm"
-      href="{{ url_for('admin.audit_logs', action=action, user=username, status=status, page=page-1) }}"
-    >
-      Previous
-    </a>
-    {% endif %} {% if page < pages %}
-    <a
-      class="btn btn-outline-secondary btn-sm"
-      href="{{ url_for('admin.audit_logs', action=action, user=username, status=status, page=page+1) }}"
-    >
-      Next
-    </a>
+    <a class="btn btn-outline-primary btn-sm"
+       href="{{ url_for('admin.audit_logs', action=action, user=username, status=status, page=page-1) }}">Previous</a>
+    {% endif %}
+    {% if page < pages %}
+    <a class="btn btn-outline-primary btn-sm"
+       href="{{ url_for('admin.audit_logs', action=action, user=username, status=status, page=page+1) }}">Next</a>
     {% endif %}
   </div>
 </div>

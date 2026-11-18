@@ -1,3 +1,11 @@
+"""Database access: opens the SQLite connection for each request and provides
+the commands that create, upgrade and seed the database.
+
+Commands (run from the project folder):
+    flask --app app init-db [--reset]   create the tables (--reset deletes the file first)
+    flask --app app migrate-db          upgrade an older database to the current schema
+    flask --app app seed-db             insert the fictional sample data
+"""
 import os
 import sqlite3
 
@@ -5,7 +13,8 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
-# Columns added to `alerts` in Part 5 (name, SQL type).
+# Columns added to the `alerts` table after its first version (name, SQL type).
+# migrate_db() adds them to databases created before they existed.
 ALERT_NEW_COLUMNS = [
     ("alert_date", "TEXT"),
     ("threshold", "REAL"),
@@ -23,6 +32,7 @@ def get_db():
 
 
 def close_db(e=None):
+    """Close the request's connection when the request ends."""
     db = g.pop("db", None)
     if db is not None:
         db.close()
@@ -40,11 +50,11 @@ def init_db(reset=False):
 
 
 def migrate_db():
-    """Upgrade an existing Part 1-4 database to the current schema.
-    Idempotent: safe to run on a new or already-migrated database."""
+    """Upgrade an older database to the current schema.
+    Safe to run more than once, and on a new or already-upgraded database."""
     db = get_db()
     existing = {r["name"] for r in db.execute("PRAGMA table_info(alerts)")}
-    if existing:  # an older alerts table is present: add the new columns
+    if existing:  # an older alerts table exists: add the columns it lacks
         for name, sql_type in ALERT_NEW_COLUMNS:
             if name not in existing:
                 db.execute(f"ALTER TABLE alerts ADD COLUMN {name} {sql_type}")
@@ -68,7 +78,7 @@ def init_db_command(reset):
 @click.command("migrate-db")
 @with_appcontext
 def migrate_db_command():
-    """Upgrade an existing database to the Part 5 schema (safe to repeat)."""
+    """Upgrade an existing database to the current schema (safe to repeat)."""
     migrate_db()
     click.echo("Database migrated to the current schema.")
 
@@ -84,6 +94,7 @@ def seed_db_command():
 
 
 def init_app(app):
+    """Hook the database into the Flask app: close connections and add the commands."""
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
     app.cli.add_command(migrate_db_command)

@@ -1,3 +1,4 @@
+"""Home page, health check, the role-based dashboard and the database overview."""
 import sqlite3
 
 from flask import Blueprint, flash, g, jsonify, render_template
@@ -9,16 +10,19 @@ from security import (ROLE_PERMISSIONS, has_permission, login_required,
 
 bp = Blueprint("main", __name__)
 
+# Tables counted on the database overview page.
 TABLES = ["users", "patients", "medical_records", "activity_logs", "alerts"]
 
 
 @bp.route("/")
 def index():
+    """Public landing page."""
     return render_template("index.html")
 
 
 @bp.route("/health")
 def health():
+    """Small status check: confirms the app can reach the database."""
     try:
         get_db().execute("SELECT 1").fetchone()
         return jsonify(status="ok", database="connected")
@@ -29,6 +33,7 @@ def health():
 @bp.route("/dashboard")
 @login_required
 def dashboard():
+    """Show the administrator dashboard to admins and the staff dashboard to everyone else."""
     role = g.user["role"]
     db = get_db()
 
@@ -49,10 +54,10 @@ def dashboard():
     return render_template("dashboard.html", permissions=permissions, staff=staff)
 
 
-# Verification page from Part 1, restricted to administrators.
 @bp.route("/db-check")
 @permission_required("view_db_check")
 def db_check():
+    """Database overview (administrators only): table sizes, users and the latest log entries."""
     db = get_db()
     try:
         counts = {t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in TABLES}

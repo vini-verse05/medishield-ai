@@ -1,3 +1,7 @@
+"""Patient pages: search and list, view, register, edit, and medical records.
+
+What each role sees or may change is decided here on the server. Every view and
+change is written to the audit log (field names only, never patient data)."""
 import re
 import sqlite3
 from datetime import date, datetime
@@ -11,12 +15,12 @@ from security import has_permission, permission_required
 
 bp = Blueprint("patients", __name__)
 
-MAX_LIST = 50
+MAX_LIST = 50  # most patients shown on one page
 GENDERS = ["Male", "Female", "Other"]
 BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 PHONE_RE = re.compile(r"^[0-9+\-() ]{5,20}$")
 
-# (column, label, input kind)
+# Patient form fields as (database column, label, input kind).
 FIELD_DEFS = [
     ("first_name", "First name", "text"),
     ("last_name", "Last name", "text"),
@@ -27,10 +31,13 @@ FIELD_DEFS = [
     ("blood_group", "Blood group", "blood"),
     ("allergies", "Allergies", "text"),
 ]
+# Field groups: everyone may see demographics; clinical roles also see the rest;
+# receptionists may only change contact details.
 DEMOGRAPHIC_FIELDS = ["first_name", "last_name", "date_of_birth", "gender", "phone", "address"]
 ALL_FIELDS = DEMOGRAPHIC_FIELDS + ["blood_group", "allergies"]
 CONTACT_FIELDS = ["phone", "address"]
 
+# Medical record types each role may create or edit.
 RECORD_TYPES = {
     "doctor": ["Consultation", "Lab Report", "Prescription", "Procedure", "Nursing Note"],
     "nurse": ["Nursing Note"],
@@ -53,6 +60,7 @@ def editable_fields(role):
 
 
 def field_defs_for(fields):
+    """The form field definitions for the given column names."""
     return [d for d in FIELD_DEFS if d[0] in fields]
 
 
@@ -88,6 +96,7 @@ def clean_patient_form(form, fields):
 
 
 def clean_record_form(form, allowed_types):
+    """Validate a medical record form. Returns (values, errors)."""
     values = {k: form.get(k, "").strip()
               for k in ("record_type", "diagnosis", "treatment", "notes")}
     errors = []
@@ -103,6 +112,7 @@ def clean_record_form(form, allowed_types):
 
 
 def get_patient_or_404(patient_id):
+    """Load a patient, or return a 404 page if the id does not exist."""
     patient = get_db().execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
     if patient is None:
         abort(404)
@@ -110,6 +120,7 @@ def get_patient_or_404(patient_id):
 
 
 def render_patient_form(title, mode, fields_shown, editable, values, static, status=200):
+    """Render the patient form (used for both registering and editing)."""
     return render_template(
         "patient_form.html", title=title, mode=mode,
         field_defs=field_defs_for(fields_shown), editable=editable,
@@ -121,6 +132,7 @@ def render_patient_form(title, mode, fields_shown, editable, values, static, sta
 @bp.route("/patients")
 @permission_required("view_patients")
 def list_patients():
+    """Search or list patients. Logs how many records were shown."""
     q = request.args.get("q", "").strip()[:50]
     where, params = "", []
     if q:
@@ -148,6 +160,7 @@ def list_patients():
 @bp.route("/patients/<int:patient_id>")
 @permission_required("view_patients")
 def patient_detail(patient_id):
+    """Show one patient. Receptionists see demographics only."""
     patient = get_patient_or_404(patient_id)
     role = g.user["role"]
     show_clinical = has_permission(role, "view_patient_details")
@@ -178,6 +191,7 @@ def patient_detail(patient_id):
 @bp.route("/patients/new", methods=["GET", "POST"])
 @permission_required("register_patient")
 def register_patient():
+    """Register a new patient (demographic fields only) and give them an MRN."""
     fields = DEMOGRAPHIC_FIELDS
     if request.method == "GET":
         return render_patient_form("Register patient", "register", fields, fields, {}, {})
@@ -216,6 +230,7 @@ def register_patient():
 @bp.route("/patients/<int:patient_id>/edit", methods=["GET", "POST"])
 @permission_required("update_patient", "update_patient_contact")
 def edit_patient(patient_id):
+    """Edit a patient. Only the fields the role may change are accepted."""
     patient = get_patient_or_404(patient_id)
     role = g.user["role"]
     editable = editable_fields(role)
@@ -255,6 +270,7 @@ def edit_patient(patient_id):
 @bp.route("/patients/<int:patient_id>/records/new", methods=["GET", "POST"])
 @permission_required("create_medical_record")
 def new_record(patient_id):
+    """Add a medical record to a patient (record types depend on the role)."""
     patient = get_patient_or_404(patient_id)
     types = RECORD_TYPES.get(g.user["role"], [])
     title = "New medical record"
@@ -289,6 +305,7 @@ def new_record(patient_id):
 @bp.route("/records/<int:record_id>/edit", methods=["GET", "POST"])
 @permission_required("update_medical_record")
 def edit_record(record_id):
+    """Edit an existing medical record (doctors only)."""
     db = get_db()
     record = db.execute(
         "SELECT m.id, m.patient_id, m.record_type, m.diagnosis, m.treatment, m.notes, "

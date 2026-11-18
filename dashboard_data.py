@@ -1,30 +1,38 @@
-"""Read-only queries behind the dashboards. Nothing here writes to the database.
-All 'days' are local days (ml.settings.TIMEZONE_OFFSET_MINUTES), and the seeded
-'SAMPLE DATA' placeholder rows are excluded, as in analysis.py."""
+"""Dashboard data: the read-only queries behind the administrator and staff
+dashboards. Nothing here writes to the database.
+
+All "days" are local days (see TIMEZONE_OFFSET_MINUTES in ml/settings.py), and
+the seeded SAMPLE DATA placeholder rows are excluded, as in analysis.py."""
 from datetime import datetime, timedelta, timezone
 
 from analysis import SAMPLE_MARKER
 from ml import settings
 from ml.explain import LEVELS
 
+# Log actions that count as failures on the dashboard.
 FAILURE_ACTIONS = ("login_failed", "access_denied", "csrf_failure")
-WINDOW_DAYS = 14
+WINDOW_DAYS = 14          # how many days the charts cover
 RECENT_ACTIVITY = 10
 RECENT_ALERTS = 5
 
+# SQL condition that skips the seeded placeholder rows (takes SAMPLE_MARKER as its value).
 REAL_ROWS = "COALESCE(details, '') <> ?"
 
 
 def local_today():
+    """Today's date in local time (the database itself stores UTC)."""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     return (now + timedelta(minutes=settings.TIMEZONE_OFFSET_MINUTES)).date()
 
 
 def _offset():
+    """The local-time offset in the form SQLite's date() function expects."""
     return f"{settings.TIMEZONE_OFFSET_MINUTES:+d} minutes"
 
 
 def admin_dashboard(db, today=None, days=WINDOW_DAYS):
+    """Everything the administrator dashboard shows: summary numbers, chart data,
+    the role comparison, the highest-risk new alerts and the latest activity."""
     today = today or local_today()
     today_s = today.isoformat()
     start = today - timedelta(days=days - 1)
@@ -50,7 +58,7 @@ def admin_dashboard(db, today=None, days=WINDOW_DAYS):
                                  "AND risk_level IN ('high', 'critical')"),
     }
 
-    # ---- daily activity (events, and failed/denied events) ----
+    # ---- Events per day, and how many of them were failures ----
     by_day = {
         r["d"]: (r["n"], r["bad"])
         for r in db.execute(
@@ -61,7 +69,7 @@ def admin_dashboard(db, today=None, days=WINDOW_DAYS):
     }
     day_list = [(start + timedelta(days=i)).isoformat() for i in range(days)]
 
-    # ---- model results per day ----
+    # ---- Model results per day (flagged and normal user-days) ----
     analyzed = {
         r["result_date"]: (r["n"], r["flagged"] or 0)
         for r in db.execute(
@@ -70,7 +78,7 @@ def admin_dashboard(db, today=None, days=WINDOW_DAYS):
             (start_s,))
     }
 
-    # ---- alerts by risk level and status ----
+    # ---- Alerts grouped by risk level and review status ----
     risk = {"new": {lv: 0 for lv in LEVELS}, "reviewed": {lv: 0 for lv in LEVELS}}
     for r in db.execute("SELECT risk_level, status, COUNT(*) AS n FROM alerts "
                         "GROUP BY risk_level, status"):
@@ -88,7 +96,7 @@ def admin_dashboard(db, today=None, days=WINDOW_DAYS):
         "alerts_reviewed": [risk["reviewed"][lv] for lv in LEVELS],
     }
 
-    # ---- comparison across roles ----
+    # ---- Comparison across roles ----
     active = {r["role"]: r["n"] for r in db.execute(
         "SELECT role, COUNT(*) AS n FROM users WHERE is_active = 1 GROUP BY role")}
     role_events = {

@@ -1,4 +1,4 @@
-"""Part 5 verification: risk mapping, explanations, migration, the full
+"""Alert tests: risk mapping, explanations, database migration, the full
 workflow (user action -> ML result -> alert -> admin review) and access control.
 Uses a temporary database. It trains a small model on synthetic data first,
 so it takes a short while.
@@ -173,7 +173,7 @@ def main():
     tmp = tempfile.mkdtemp()
 
     # -------------------------------------------------------------- migration
-    print("Database migration from a Part 1-4 database")
+    print("Database migration from an older schema")
     old_path = os.path.join(tmp, "old.db")
     conn = sqlite3.connect(old_path)
     conn.executescript(OLD_ALERTS_SQL)

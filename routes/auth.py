@@ -1,3 +1,4 @@
+"""Login and logout."""
 from urllib.parse import urlparse
 
 from flask import (Blueprint, flash, g, redirect, render_template, request,
@@ -9,8 +10,8 @@ from database import get_db
 
 bp = Blueprint("auth", __name__)
 
-# Checked when the username does not exist, so response time does not reveal
-# whether an account exists.
+# A password is checked against this when the username does not exist, so the
+# response time does not reveal whether an account exists.
 DUMMY_HASH = generate_password_hash("not-a-real-password")
 
 
@@ -26,6 +27,8 @@ def is_safe_next(target):
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    """Show the login form and check the submitted username and password.
+    Every attempt, successful or not, is written to the audit log."""
     if g.user is not None:
         return redirect(url_for("main.dashboard"))
 
@@ -53,7 +56,8 @@ def login():
             log_activity("login", user=user)  # also commits the reset above
             return redirect(next_url if is_safe_next(next_url) else url_for("main.dashboard"))
 
-        # ---- failed attempt: record it (the user sees one generic message) ----
+        # Failed attempt: record the real reason in the log, but show the user one
+        # generic message so an attacker cannot tell which part was wrong.
         if user is not None:
             if not password_ok:
                 db.execute(
@@ -77,6 +81,7 @@ def login():
 
 @bp.route("/logout", methods=["POST"])
 def logout():
+    """End the session. POST only, so a link on another site cannot log someone out."""
     if g.user is not None:
         log_activity("logout")
     session.clear()

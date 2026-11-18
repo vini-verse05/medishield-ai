@@ -59,13 +59,14 @@ def fit_bundle(train_features, seed=settings.RANDOM_SEED,
         "timezone_offset_minutes": settings.TIMEZONE_OFFSET_MINUTES,
         "models": models,
         "thresholds": thresholds,
-        "baselines": baselines,    # used for explanations in Part 5
+        "baselines": baselines,    # each role's usual values, used to explain alerts
         "train_scores": train_scores,
         "n_train_rows": n_rows,
     }
 
 
 def save_bundle(bundle, path=settings.MODEL_PATH):
+    """Write the trained models to disk."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     joblib.dump(bundle, path)
 

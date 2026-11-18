@@ -1,9 +1,15 @@
+{# Form for adding or editing a medical record. Record types depend on the role. #}
 {% extends "base.html" %}
 {% block title %}{{ title }} · MediShield AI{% endblock %}
 {% block content %}
-<h1 class="h4 mb-1">{{ title }}</h1>
-<p class="text-muted">Patient: {{ patient.first_name }} {{ patient.last_name }} ({{ patient.mrn }})</p>
-<div class="card"><div class="card-body">
+<div class="page-head">
+  <div>
+    <h1>{{ title }}</h1>
+    <p class="page-sub">Patient: {{ patient.first_name }} {{ patient.last_name }} ({{ patient.mrn }}). Use fictional sample data only.</p>
+  </div>
+</div>
+
+<div class="panel form-card">
   <form method="post" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="mb-3">
@@ -27,9 +33,10 @@
       <label class="form-label" for="notes">Notes</label>
       <textarea class="form-control" id="notes" name="notes" rows="4" maxlength="2000">{{ values.get('notes') or '' }}</textarea>
     </div>
-    <p class="small text-muted">Use fictional sample data only.</p>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Cancel</a>
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Save record</button>
+      <a class="btn btn-link" href="{{ url_for('patients.list_patients') }}">Cancel</a>
+    </div>
   </form>
-</div></div>
+</div>
 {% endblock %}

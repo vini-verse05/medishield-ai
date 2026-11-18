@@ -1,4 +1,4 @@
-"""Part 6 verification: dashboard queries, role-aware dashboards, nav counter,
+"""Dashboard tests: dashboard queries, role-aware dashboards, nav counter,
 demo-credentials switch, graceful fallback and the multi-seed aggregation.
 Uses a temporary database.
 
@@ -173,7 +173,7 @@ def main():
     check("demo accounts are shown by default", b"Demo accounts" in default_page)
     check("demo accounts are hidden when switched off", b"Demo accounts" not in hidden_page)
 
-    print("Graceful fallback without the Part 5 tables")
+    print("Graceful fallback when the alert tables are missing")
     with app.app_context():
         get_db().execute("DROP TABLE analysis_results")
         get_db().commit()

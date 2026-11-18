@@ -1,4 +1,4 @@
-"""Part 4 verification: features, data generator, training, scoring, evaluation.
+"""Machine learning tests: feature extraction, the data generator, training, scoring and evaluation.
 Uses temporary files only. Run:  python test_ml.py
 (Takes a short while: it generates and trains on a small synthetic dataset.)
 """

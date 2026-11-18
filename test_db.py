@@ -1,5 +1,5 @@
-"""Part 1 verification: tests the schema, seed data, relationships and routes
-against a temporary database (your real instance/medishield.db is untouched).
+"""Database tests: schema, sample data, table relationships, constraints and the
+basic routes. Uses a temporary database; your real instance/medishield.db is untouched.
 
 Run:  python test_db.py
 """

@@ -1,4 +1,4 @@
-"""Part 2 verification: login, logout, sessions, RBAC, CSRF and redirects.
+"""Authentication tests: login, logout, sessions, role-based access, CSRF and redirects.
 Uses a temporary database; your real instance/medishield.db is untouched.
 
 Run:  python test_auth.py
@@ -31,7 +31,7 @@ def build_app(tmp):
     })
 
     # Test-only routes that exercise clinical permissions, which have no real
-    # pages until Part 3. They exist only inside this test script.
+    # pages for them in this test setup. They exist only inside this test script.
     @app.route("/_test/update-record", methods=["POST"])
     @permission_required("update_medical_record")
     def _update_record():

@@ -1,226 +1,155 @@
-{% extends "base.html" %} {% block title %}Dashboard · MediShield AI{% endblock
-%} {% block content %} {% set colors = {'low': 'secondary', 'medium': 'warning
-text-dark', 'high': 'danger', 'critical': 'dark'} %} {% set c = data.cards %} {%
-macro stat(label, value, hint='', tone='') %}
-<div class="col-6 col-md-3">
-  <div class="card stat-card h-100">
-    <div class="card-body py-3">
-      <div class="stat-label">{{ label }}</div>
-      <div class="stat-value {{ tone }}">{{ value }}</div>
-      {% if hint %}
-      <div class="small text-muted">{{ hint }}</div>
-      {% endif %}
-    </div>
-  </div>
+{#
+  Administrator dashboard: summary numbers, three charts, a role comparison,
+  the highest-risk new alerts and the latest activity. Shows counts only,
+  never patient data. Chart data is passed to dashboard.js as JSON.
+#}
+{% extends "base.html" %}
+{% from "_components.html" import risk_chip, result_chip, resource, role_chip %}
+{% block title %}Dashboard · MediShield AI{% endblock %}
+{% block content %}
+{% set c = data.cards %}
+
+{# One cell of the summary strip. A non-zero "alert" value is drawn in red. #}
+{% macro stat(label, value, hint='', alert=false) %}
+<div class="stat">
+  <div class="stat-label">{{ label }}</div>
+  <div class="stat-value {% if alert and value %}is-alert{% endif %}">{{ value }}</div>
+  {% if hint %}<div class="stat-hint">{{ hint }}</div>{% endif %}
 </div>
 {% endmacro %}
 
-<div
-  class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"
->
+<div class="page-head">
   <div>
-    <h1 class="h4 mb-0">Administrator dashboard</h1>
-    <div class="small text-muted">
-      Last analysis: {% if data.last_analysis %}{{ data.last_analysis|localtime
-      }} IST{% else %}never run{% endif %}
-    </div>
+    <h1>Administrator dashboard</h1>
+    <p class="page-sub">
+      Last analysis: {% if data.last_analysis %}{{ data.last_analysis|localtime }} IST{% else %}never run{% endif %}
+    </p>
   </div>
-  <div class="d-flex gap-2">
-    <a
-      class="btn btn-outline-primary btn-sm"
-      href="{{ url_for('alerts.list_alerts') }}"
-      >Open alerts</a
-    >
+  <div class="page-actions">
+    <a class="btn btn-outline-primary" href="{{ url_for('alerts.list_alerts') }}">Open alerts</a>
     <form method="post" action="{{ url_for('alerts.run') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <button type="submit" class="btn btn-primary btn-sm">
-        Run analysis now
-      </button>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary">Run analysis now</button>
     </form>
   </div>
 </div>
 
-<div class="alert alert-warning py-2 small">
-  Flagged days are <strong>warnings for investigation</strong>, not proof of
-  malicious intent. Administrators see patient and record <em>counts</em> only;
-  patient data is not available to this role.
+<div class="note">
+  Flagged days are <strong>warnings for investigation</strong>, not proof of malicious intent.
+  Administrators see patient and record <em>counts</em> only; patient data is not available to this role.
 </div>
 
-<div class="row g-3 mb-3">
-  {{ stat('Active users', c.active_users) }} {{ stat('Patients', c.patients,
-  'count only') }} {{ stat('Medical records', c.medical_records, 'count only')
-  }} {{ stat('Events today', c.events_today, 'local time') }}
-</div>
-<div class="row g-3 mb-3">
-  {{ stat('Failed logins today', c.failed_logins_today, '', 'text-danger' if
-  c.failed_logins_today else '') }} {{ stat('Denied requests today',
-  c.denied_today, '', 'text-danger' if c.denied_today else '') }} {{ stat('New
-  alerts', c.new_alerts) }} {{ stat('High / critical new', c.high_critical_new,
-  '', 'text-danger' if c.high_critical_new else '') }}
+<div class="stat-strip cols-4">
+  {{ stat('Active users', c.active_users) }}
+  {{ stat('Patients', c.patients, 'count only') }}
+  {{ stat('Medical records', c.medical_records, 'count only') }}
+  {{ stat('Events today', c.events_today, 'local time') }}
+  {{ stat('Failed logins today', c.failed_logins_today, '', true) }}
+  {{ stat('Denied requests today', c.denied_today, '', true) }}
+  {{ stat('New alerts', c.new_alerts) }}
+  {{ stat('High or critical (new)', c.high_critical_new, '', true) }}
 </div>
 
 <div class="row g-3 mb-3">
   <div class="col-lg-8">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Activity, last {{ data.window_days }} days</h2>
-        <div class="chart-box">
-          <canvas
-            id="chartActivity"
-            role="img"
-            aria-label="Line chart of daily events and of failed or denied events"
-          ></canvas>
-        </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Activity, last {{ data.window_days }} days</h2>
+      <div class="chart-box">
+        <canvas id="chartActivity" role="img"
+                aria-label="Line chart of daily events and of failed or denied events"></canvas>
       </div>
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Alerts by risk level</h2>
-        <div class="chart-box">
-          <canvas
-            id="chartRisk"
-            role="img"
-            aria-label="Bar chart of new and reviewed alerts by risk level"
-          ></canvas>
-        </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Alerts by risk level</h2>
+      <div class="chart-box">
+        <canvas id="chartRisk" role="img"
+                aria-label="Bar chart of new and reviewed alerts by risk level"></canvas>
       </div>
     </div>
   </div>
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-4">
   <div class="col-lg-7">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Model results: flagged vs normal user-days</h2>
-        <div class="chart-box">
-          <canvas
-            id="chartFlagged"
-            role="img"
-            aria-label="Stacked bar chart of normal and flagged user-days per day"
-          ></canvas>
-        </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Model results: flagged and normal user-days</h2>
+      <div class="chart-box">
+        <canvas id="chartFlagged" role="img"
+                aria-label="Stacked bar chart of normal and flagged user-days per day"></canvas>
       </div>
     </div>
   </div>
   <div class="col-lg-5">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h6">Users and roles (last {{ data.window_days }} days)</h2>
-        <table class="table table-sm small mb-0">
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Active users</th>
-              <th>Events</th>
-              <th>Failed / denied</th>
-              <th>Flagged days</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in data.roles %}
-            <tr>
-              <td>{{ r.role }}</td>
-              <td>{{ r.active_users }}</td>
-              <td>{{ r.events }}</td>
-              <td>{{ r.failures }}</td>
-              <td>{{ r.flagged_days }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <a class="small" href="{{ url_for('admin.users') }}">Full user list</a>
-      </div>
+    <div class="panel h-100">
+      <h2 class="section-title">Roles, last {{ data.window_days }} days</h2>
+      <table class="table data-table">
+        <thead><tr><th>Role</th><th>Users</th><th>Events</th><th>Failed</th><th>Flagged</th></tr></thead>
+        <tbody>
+        {% for r in data.roles %}
+          <tr>
+            <td>{{ role_chip(r.role) }}</td><td>{{ r.active_users }}</td><td>{{ r.events }}</td>
+            <td>{{ r.failures }}</td><td>{{ r.flagged_days }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <a class="small" href="{{ url_for('admin.users') }}">Full user list</a>
     </div>
   </div>
 </div>
 
-<h2 class="h6">New alerts (highest risk first)</h2>
-<div class="table-responsive mb-3">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>Risk</th>
-        <th>User</th>
-        <th>Role</th>
-        <th>Date</th>
-        <th>Why flagged</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
+<h2 class="section-title">New alerts, highest risk first</h2>
+<div class="table-wrap mb-4">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead><tr><th>Risk</th><th>User</th><th>Role</th><th>Date</th><th>Why flagged</th><th></th></tr></thead>
+      <tbody>
       {% for a in data.recent_alerts %}
-      <tr>
-        <td>
-          <span class="badge bg-{{ colors[a.risk_level] }}"
-            >{{ a.risk_level|upper }}</span
-          >
-        </td>
-        <td>{{ a.username or '-' }}</td>
-        <td>{{ a.user_role or '-' }}</td>
-        <td>{{ a.alert_date or '-' }}</td>
-        <td>{{ (a.explanation or '')|truncate(150) }}</td>
-        <td>
-          <a
-            class="btn btn-outline-primary btn-sm py-0"
-            href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}"
-            >Open</a
-          >
-        </td>
-      </tr>
+        <tr data-risk="{{ a.risk_level }}">
+          <td>{{ risk_chip(a.risk_level) }}</td>
+          <td>{{ a.username or '-' }}</td>
+          <td>{{ role_chip(a.user_role) }}</td>
+          <td>{{ a.alert_date or '-' }}</td>
+          <td class="why">{{ (a.explanation or '')|truncate(150) }}</td>
+          <td><a class="row-link" href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}">Open</a></td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">No new alerts.</td>
-      </tr>
+        <tr><td colspan="6" class="empty-row">No new alerts.</td></tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<h2 class="h6">Recent activity</h2>
-<div class="table-responsive">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>Time (IST)</th>
-        <th>Actor</th>
-        <th>Role</th>
-        <th>Action</th>
-        <th>Resource</th>
-        <th>Result</th>
-      </tr>
-    </thead>
-    <tbody>
+<h2 class="section-title">Recent activity</h2>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead><tr><th>Time (IST)</th><th>Actor</th><th>Role</th><th>Action</th><th>Resource</th><th>Result</th></tr></thead>
+      <tbody>
       {% for e in data.recent_activity %}
-      <tr>
-        <td>{{ e.timestamp|localtime }}</td>
-        <td>{{ e.actor or '-' }}</td>
-        <td>{{ e.role or '-' }}</td>
-        <td>{{ e.action }}</td>
-        <td>
-          {{ e.resource_type or '-' }}{% if e.resource_id %} #{{ e.resource_id
-          }}{% endif %}
-        </td>
-        <td>
-          {% if e.success %}<span class="badge bg-success">OK</span>{% else
-          %}<span class="badge bg-danger">Failed</span>{% endif %}
-        </td>
-      </tr>
+        <tr>
+          <td>{{ e.timestamp|localtime }}</td>
+          <td>{{ e.actor or '-' }}</td>
+          <td>{{ role_chip(e.role) }}</td>
+          <td>{{ e.action }}</td>
+          <td>{{ resource(e.resource_type, e.resource_id) }}</td>
+          <td>{{ result_chip(e.success) }}</td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="6" class="text-center text-muted">No activity yet.</td>
-      </tr>
+        <tr><td colspan="6" class="empty-row">No activity yet.</td></tr>
       {% endfor %}
-    </tbody>
-  </table>
-  <a class="small" href="{{ url_for('admin.audit_logs') }}">Full audit log</a>
+      </tbody>
+    </table>
+  </div>
 </div>
-{% endblock %} {% block scripts %}
-<script id="dash-data" type="application/json">
-  {{ data.chart|tojson }}
-</script>
+<p class="mt-2"><a class="small" href="{{ url_for('admin.audit_logs') }}">Open the full audit log</a></p>
+{% endblock %}
+
+{% block scripts %}
+<script id="dash-data" type="application/json">{{ data.chart|tojson }}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

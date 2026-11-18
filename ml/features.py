@@ -1,17 +1,23 @@
-"""Turns raw activity-log rows into one feature row per user per local day.
-The same function is used for synthetic data (Part 4) and real app logs (Part 5)."""
+"""Feature extraction: turns raw activity-log rows into one row of numbers per
+user per local day.
+
+The same function prepares the synthetic training data and the real logs from
+the running app, so the model always sees the same kind of input."""
 import pandas as pd
 
 from ml import settings
 
+# Columns the input table must have (they match the activity_logs table).
 REQUIRED_COLUMNS = ["user_id", "role", "action", "resource_id",
                     "records_accessed", "success", "timestamp"]
+# Which log actions count as browsing (list/search) and as changing data.
 LIST_SEARCH_ACTIONS = {"list_patients", "search_patients"}
 WRITE_ACTIONS = {"update_patient", "update_medical_record",
                  "create_medical_record", "register_patient"}
 
 
 def empty_features():
+    """An empty feature table with the right columns."""
     return pd.DataFrame(columns=settings.KEY_COLUMNS + settings.FEATURE_COLUMNS)
 
 

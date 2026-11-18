@@ -1,12 +1,12 @@
-# MediShield AI: risk scoring and alerts (Part 5)
+# MediShield AI: risk scoring and alerts
 
 ## Workflow
 
-1. Users act in the app; server code writes rows to `activity_logs` (Part 3).
+1. Users act in the app; server code writes rows to `activity_logs`.
 2. Analysis (admin button or `flask --app app analyze`) loads all log rows
    except the seeded `SAMPLE DATA` rows.
 3. `ml.features.extract_features` builds one feature row per user per local day
-   (identical code to Part 4 training).
+   (identical code to what prepares the training data).
 4. The role's Isolation Forest scores each row (`anomaly_score`, higher = more
    unusual for that role). A day is flagged if the score exceeds that role's
    threshold (95th percentile of training scores).

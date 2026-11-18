@@ -1,11 +1,11 @@
-{% extends "base.html" %} {% block title %}{{ code }} · MediShield AI{% endblock
-%} {% block content %}
-<div class="text-center py-5">
-  <div class="display-4 text-muted">{{ code }}</div>
-  <h1 class="h4">{{ title }}</h1>
-  <p class="text-muted">{{ text }}</p>
-  <a class="btn btn-primary btn-sm" href="{{ url_for('main.index') }}"
-    >Back to home</a
-  >
+{# Error page shown for 400, 403, 404 and 405 responses. #}
+{% extends "base.html" %}
+{% block title %}{{ code }} · MediShield AI{% endblock %}
+{% block content %}
+<div class="error-box">
+  <div class="error-code">{{ code }}</div>
+  <h1>{{ title }}</h1>
+  <p>{{ text }}</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">Back to home</a>
 </div>
 {% endblock %}

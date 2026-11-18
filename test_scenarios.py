@@ -1,4 +1,4 @@
-"""Part 6 verification: (1) every role against every major page, (2) end-to-end
+"""Scenario tests: (1) every role against every major page, (2) end-to-end
 normal and suspicious scenarios driven through the REAL routes and scored by a
 REAL Isolation Forest (a small model is trained here, so this takes a while).
 Uses temporary databases.

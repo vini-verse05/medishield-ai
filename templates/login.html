@@ -1,50 +1,88 @@
-{% extends "base.html" %} {% block title %}Log in · MediShield AI{% endblock %}
+{#
+  Sign-in page. The left panel explains the product in plain words; the right
+  panel holds the form. The demo accounts box can be hidden by setting
+  SHOW_DEMO_CREDENTIALS=0 in the environment.
+#}
+{% extends "base.html" %}
+{% block title %}Log in · MediShield AI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block nav %}{% endblock %}
+{% block flashes %}{% endblock %}
+{% block footer %}{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6 col-lg-4">
-    <div class="card">
-      <div class="card-body p-4">
-        <h1 class="h4 mb-3">Sign in</h1>
-        <form method="post" autocomplete="off">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <input type="hidden" name="next" value="{{ next or '' }}" />
-          <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input
-              type="text"
-              class="form-control"
-              id="username"
-              name="username"
-              required
-              autofocus
-            />
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              name="password"
-              required
-            />
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Log in</button>
-        </form>
-      </div>
+<div class="auth">
+  <section class="auth-brand">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3l11 4v8c0 7-4.6 11.7-11 14C9.6 26.7 5 22 5 15V7l11-4z" fill="#19a7a7"/>
+        <path d="M10 16h3l2-4 3 8 2-4h2" fill="none" stroke="#fff" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>MediShield <span class="brand-ai">AI</span></span>
+    </a>
+
+    <div>
+      <h2>Know who opened which record, and when.</h2>
+      <ul class="auth-points mt-4">
+        <li><strong>Every access is recorded</strong>
+            <span>Logins, searches, views and edits go into an audit log that cannot be edited from the app.</span></li>
+        <li><strong>Roles limit what each person sees</strong>
+            <span>Doctors, nurses, receptionists and administrators get only what their job needs.</span></li>
+        <li><strong>Unusual days are flagged</strong>
+            <span>A model learns what is normal for each role and alerts an administrator to review.</span></li>
+      </ul>
     </div>
-    {% if config.SHOW_DEMO_CREDENTIALS %}
-    <div class="card mt-3">
-      <div class="card-body py-2 small text-muted">
-        <strong>Demo accounts (sample data, remove before any real use)</strong
-        ><br />
-        admin · dr_sharma · dr_mehta · nurse_priya · nurse_rahul ·
-        recep_anita<br />
-        Password for all: <code>Demo@1234</code><br />
-        <em>Hide this box by setting SHOW_DEMO_CREDENTIALS=0.</em>
+
+    <span class="brand-ai small">Academic prototype · fictional sample data</span>
+  </section>
+
+  <section class="auth-form-wrap">
+    <div class="auth-card">
+      <h1>Sign in</h1>
+      <p class="muted mb-3">Use your hospital account.</p>
+
+      {% include "_flash.html" %}
+
+      <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next or '' }}">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" class="form-control" id="username" name="username" required autofocus>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Log in</button>
+      </form>
+
+      {% if config.SHOW_DEMO_CREDENTIALS %}
+      <div class="panel demo-box">
+        <strong>Demo accounts</strong> (sample data only)
+        <div class="demo-users">
+          {% for name in ['admin', 'dr_sharma', 'dr_mehta', 'nurse_priya', 'nurse_rahul', 'recep_anita'] %}
+          <button type="button" class="demo-user" data-user="{{ name }}">{{ name }}</button>
+          {% endfor %}
+        </div>
+        Click a name to fill the username. Password for all: <code>Demo@1234</code>
+        <div class="muted mt-1">Hide this box by setting SHOW_DEMO_CREDENTIALS=0.</div>
       </div>
+      {% endif %}
     </div>
-    {% endif %}
-  </div>
+  </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Demo helper: clicking a username fills the form and moves to the password field.
+  document.querySelectorAll(".demo-user").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.getElementById("username").value = btn.dataset.user;
+      document.getElementById("password").focus();
+    });
+  });
+</script>
 {% endblock %}

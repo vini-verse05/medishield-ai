@@ -1,3 +1,4 @@
+"""Alert pages for administrators: list, detail, mark as reviewed, run analysis."""
 import json
 
 from flask import (Blueprint, abort, flash, g, redirect, render_template,
@@ -12,13 +13,14 @@ from security import permission_required
 
 bp = Blueprint("alerts", __name__, url_prefix="/admin/alerts")
 
-MAX_ROWS = 200
-MAX_EVENTS = 100
+MAX_ROWS = 200    # alerts shown on the list page
+MAX_EVENTS = 100  # log rows shown on one alert's page
 
 
 @bp.route("")
 @permission_required("view_alerts")
 def list_alerts():
+    """All alerts, highest risk first, with filters for status and risk level."""
     db = get_db()
     status = request.args.get("status", "new")
     if status not in ("new", "reviewed", "all"):
@@ -61,6 +63,7 @@ def list_alerts():
 @bp.route("/<int:alert_id>")
 @permission_required("view_alerts")
 def alert_detail(alert_id):
+    """One alert with its explanation, the day's behaviour measures and log rows."""
     db = get_db()
     alert = db.execute(
         "SELECT a.*, u.username, u.full_name, u.role AS user_role, "
@@ -99,6 +102,7 @@ def alert_detail(alert_id):
 @bp.route("/<int:alert_id>/review", methods=["POST"])
 @permission_required("review_alerts")
 def review(alert_id):
+    """Mark an alert as reviewed, recording who did it and when."""
     db = get_db()
     alert = db.execute(
         "SELECT id, status, risk_level, user_id FROM alerts WHERE id = ?", (alert_id,)
@@ -123,13 +127,14 @@ def review(alert_id):
 @bp.route("/run", methods=["POST"])
 @permission_required("review_alerts")
 def run():
+    """Run the anomaly analysis now (the "Run analysis now" button)."""
     try:
         detector = analysis.get_detector()
     except FileNotFoundError:
         flash("The trained model could not be found. Run "
               "'python -m ml.generate_data' and then 'python -m ml.train'.", "danger")
         return redirect(url_for("alerts.list_alerts"))
-    except Exception as exc:  # e.g. incompatible scikit-learn version
+    except Exception as exc:  # for example, a model saved with a different scikit-learn version
         flash(f"The trained model could not be loaded ({type(exc).__name__}). "
               "Retrain it with 'python -m ml.train'.", "danger")
         return redirect(url_for("alerts.list_alerts"))

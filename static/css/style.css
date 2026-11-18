@@ -1,14 +1,418 @@
-body { background-color: #f4f6f9; }
-.card { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-.pre-wrap { white-space: pre-wrap; }
+/* ==========================================================================
+   MediShield AI - application styles
+   Bootstrap 5 provides the base; this file sets the colours, type and the
+   few custom components (page header, stat strip, chips, data tables, login).
+   ========================================================================== */
 
-/* Dashboard */
-.stat-card .stat-label {
-  font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.04em;
+/* ---- 1. Design tokens --------------------------------------------------- */
+:root {
+  /* Surfaces and text */
+  --ink: #16222e;
+  --ink-soft: #4b5b6b;
+  --muted: #6b7c8c;
+  --line: #dce3e9;
+  --page: #f1f4f7;
+  --surface: #ffffff;
+  --nav: #14283d;
+
+  /* Action colour (buttons, links, focus) */
+  --accent: #0e7a7a;
+  --accent-dark: #0a5f5f;
+  --accent-bright: #19a7a7;
+  --accent-tint: #e3f2f2;
+
+  /* Risk scale: used only for alert severity and failures */
+  --risk-low: #5e7388;
+  --risk-medium: #c98a0b;
+  --risk-high: #c2412d;
+  --risk-critical: #7f1d2d;
+
+  /* Point Bootstrap at our palette */
+  --bs-primary: var(--accent);
+  --bs-primary-rgb: 14, 122, 122;
+  --bs-link-color: var(--accent);
+  --bs-link-color-rgb: 14, 122, 122;
+  --bs-link-hover-color: var(--accent-dark);
+  --bs-link-hover-color-rgb: 10, 95, 95;
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--page);
+  --bs-border-color: var(--line);
+  --bs-border-radius: 8px;
+  --bs-body-font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bs-body-font-size: 0.95rem;
 }
-.stat-card .stat-value { font-size: 1.8rem; font-weight: 600; line-height: 1.15; }
+
+body { font-feature-settings: "tnum" 1; }
+
+/* Keyboard focus is always visible */
+a:focus-visible, button:focus-visible, .form-control:focus-visible, .form-select:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+/* ---- 2. Buttons and form controls -------------------------------------- */
+.btn { font-weight: 500; }
+
+.btn-primary {
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-bg: var(--accent-dark);
+  --bs-btn-hover-border-color: var(--accent-dark);
+  --bs-btn-active-bg: var(--accent-dark);
+  --bs-btn-active-border-color: var(--accent-dark);
+  --bs-btn-disabled-bg: var(--accent);
+  --bs-btn-disabled-border-color: var(--accent);
+  --bs-btn-focus-shadow-rgb: 14, 122, 122;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-bg: var(--accent);
+  --bs-btn-hover-border-color: var(--accent);
+  --bs-btn-active-bg: var(--accent-dark);
+  --bs-btn-active-border-color: var(--accent-dark);
+  --bs-btn-focus-shadow-rgb: 14, 122, 122;
+}
+
+.btn-success {
+  --bs-btn-bg: #1e7d4f;
+  --bs-btn-border-color: #1e7d4f;
+  --bs-btn-hover-bg: #176b43;
+  --bs-btn-hover-border-color: #176b43;
+  --bs-btn-active-bg: #176b43;
+  --bs-btn-active-border-color: #176b43;
+}
+
+.form-label { font-weight: 500; font-size: 0.875rem; margin-bottom: 0.3rem; }
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.2rem rgba(14, 122, 122, 0.18);
+}
+
+/* ---- 3. Top navigation -------------------------------------------------- */
+.app-nav { background: var(--nav); padding: 0.55rem 0; }
+
+.app-nav .container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #fff;
+  font-weight: 650;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.brand:hover { color: #fff; }
+.brand-mark { width: 28px; height: 28px; flex: none; }
+.brand-ai { font-weight: 400; color: rgba(255, 255, 255, 0.7); }
+
+.nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-nav .nav-link {
+  color: rgba(255, 255, 255, 0.72);
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background-color 0.15s, color 0.15s;
+}
+.app-nav .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.app-nav .nav-link.active { color: #fff; background: rgba(255, 255, 255, 0.15); font-weight: 600; }
+
+.nav-count {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.nav-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.875rem;
+}
+
+.btn-nav {
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  padding: 0.25rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.btn-nav:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+/* ---- 4. Page layout ----------------------------------------------------- */
+.page { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.page-head h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.page-sub { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.9rem; max-width: 64ch; }
+.page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+
+.section-title { font-size: 1rem; font-weight: 600; margin: 0 0 0.75rem; }
+.section-gap { margin-top: 1.75rem; }
+
+.app-footer {
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding-top: 0.9rem;
+  padding-bottom: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+/* ---- 5. Panels, notes and key-value lists ------------------------------- */
+.card, .panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: none;
+}
+.panel { padding: 1.1rem 1.25rem; }
+
+.note {
+  background: #fff8e6;
+  border: 1px solid #f1dfa6;
+  border-left: 4px solid #d9a400;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+  color: #5b4a10;
+  margin-bottom: 1.25rem;
+}
+.note-info { background: #eef5fb; border-color: #cfe0ef; border-left-color: #3b7fb8; color: #27445f; }
+
+.alert { border-radius: 8px; font-size: 0.9rem; }
+
+.kv { display: grid; grid-template-columns: minmax(120px, 34%) 1fr; margin: 0; }
+.kv dt, .kv dd { padding: 0.5rem 0; border-bottom: 1px solid #eef2f5; margin: 0; }
+.kv dt { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+.kv dt:nth-last-of-type(1), .kv dd:nth-last-of-type(1) { border-bottom: 0; }
+
+.pre-wrap { white-space: pre-wrap; }
+.muted { color: var(--muted); }
+
+/* ---- 6. Chips (small status labels) ------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: #edf1f4;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: nowrap;
+}
+.chip-dot::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.chip-low { background: #ebf0f4; color: #455a6e; }
+.chip-medium { background: #fff1cc; color: #7a4f00; }
+.chip-high { background: #fbe3dd; color: #a3301e; }
+.chip-critical { background: var(--risk-critical); color: #fff; }
+.chip-ok { background: #e1f3e9; color: #176b43; }
+.chip-fail { background: #fbe3dd; color: #a3301e; }
+.chip-new { background: var(--accent-tint); color: var(--accent-dark); }
+.chip-role { background: #e8edf8; color: #2c4a7a; }
+.chip-on-dark { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.chip-perm { background: #f3f6f8; color: var(--ink-soft); font-weight: 500; border: 1px solid var(--line); }
+
+/* ---- 7. Stat strip (joined summary numbers) ----------------------------- */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+.stat-strip.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 767.98px) {
+  .stat-strip.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.stat { background: var(--surface); padding: 0.9rem 1.1rem; }
+.stat-label { font-size: 0.82rem; color: var(--muted); }
+.stat-value { font-size: 1.65rem; font-weight: 600; line-height: 1.2; margin-top: 0.1rem; }
+.stat-value.is-alert { color: var(--risk-high); }
+.stat-hint { font-size: 0.75rem; color: var(--muted); }
+
+/* ---- 8. Data tables ----------------------------------------------------- */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.data-table { --bs-table-bg: transparent; margin: 0; font-size: 0.875rem; }
+.data-table thead th {
+  background: #f6f8fa;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.data-table td { padding: 0.6rem 0.85rem; border-color: #edf1f4; vertical-align: middle; }
+.data-table tbody tr:last-child td { border-bottom: 0; }
+.data-table tbody tr:hover td { background: #f8fafb; }
+.data-table .why { max-width: 420px; font-size: 0.84rem; color: var(--ink-soft); }
+.row-link { font-weight: 500; text-decoration: none; }
+.row-link:hover { text-decoration: underline; }
+.empty-row { text-align: center; color: var(--muted); padding: 1.5rem 0.85rem !important; }
+
+/* A coloured edge on alert rows shows severity at a glance */
+.data-table tr[data-risk="low"] td:first-child { box-shadow: inset 3px 0 0 var(--risk-low); }
+.data-table tr[data-risk="medium"] td:first-child { box-shadow: inset 3px 0 0 var(--risk-medium); }
+.data-table tr[data-risk="high"] td:first-child { box-shadow: inset 3px 0 0 var(--risk-high); }
+.data-table tr[data-risk="critical"] td:first-child { box-shadow: inset 3px 0 0 var(--risk-critical); }
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ---- 9. Patient records ------------------------------------------------- */
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  font-weight: 650;
+}
+.patient-title { display: flex; align-items: center; gap: 0.85rem; }
+
+.record {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.record-meta { color: var(--muted); font-size: 0.8rem; }
+
+.form-card { max-width: 680px; }
+
+/* ---- 10. Dashboard charts ----------------------------------------------- */
 .chart-box { position: relative; height: 260px; }
 
-/* Navigation */
-.navbar .nav-link.active { color: #fff; font-weight: 600; border-bottom: 2px solid #0d6efd; }
-footer { border-top: 1px solid #dee2e6; padding-top: 0.75rem; }
+/* ---- 11. Landing page --------------------------------------------------- */
+.hero { padding: 1rem 0 2rem; max-width: 720px; }
+.hero h1 { font-size: 2.1rem; line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; }
+.hero p { font-size: 1.05rem; color: var(--ink-soft); margin: 0.9rem 0 1.4rem; }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; }
+.step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--nav);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+.step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+.step p { margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+
+/* ---- 12. Error page ----------------------------------------------------- */
+.error-box { text-align: center; padding: 4rem 1rem; }
+.error-code { font-size: 4rem; font-weight: 650; color: var(--line); line-height: 1; }
+.error-box h1 { font-size: 1.4rem; font-weight: 600; margin: 0.5rem 0; }
+.error-box p { color: var(--muted); max-width: 46ch; margin: 0 auto 1.25rem; }
+
+/* ---- 13. Login page ----------------------------------------------------- */
+.auth-page .page { max-width: none; padding: 0; }
+.auth { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100vh; }
+
+.auth-brand {
+  background: var(--nav);
+  color: #fff;
+  padding: 3rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2.5rem;
+}
+.auth-brand h2 { font-size: 2rem; line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; max-width: 17ch; margin: 0; }
+.auth-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.1rem; max-width: 42ch; }
+.auth-points strong { display: block; font-weight: 600; margin-bottom: 0.15rem; }
+.auth-points span { color: rgba(255, 255, 255, 0.72); font-size: 0.9rem; }
+
+.auth-form-wrap { display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
+.auth-card { width: 100%; max-width: 380px; }
+.auth-card h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+
+.demo-box { margin-top: 1rem; font-size: 0.82rem; color: var(--ink-soft); }
+.demo-users { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+.demo-user {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+}
+.demo-user:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+@media (max-width: 860px) {
+  .auth { grid-template-columns: 1fr; min-height: 0; }
+  .auth-brand { padding: 2rem 1.5rem; gap: 1.5rem; }
+  .auth-brand h2 { font-size: 1.6rem; }
+}
+
+/* ---- 14. Reduced motion ------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

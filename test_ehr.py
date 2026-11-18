@@ -1,4 +1,4 @@
-"""Part 3 verification: EHR workflow, role restrictions and audit logging.
+"""Patient record tests: search, view, edit and register, role restrictions and audit logging.
 Uses a temporary database; your real instance/medishield.db is untouched.
 
 Run:  python test_ehr.py

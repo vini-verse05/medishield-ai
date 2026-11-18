@@ -1,4 +1,4 @@
-# MediShield AI: ML design notes (Part 4)
+# MediShield AI: machine learning design notes
 
 ## 1. Dataset choice
 

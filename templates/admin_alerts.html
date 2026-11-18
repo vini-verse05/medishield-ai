@@ -1,144 +1,88 @@
-{% extends "base.html" %} {% block title %}Alerts · MediShield AI{% endblock %}
-{% block content %} {% set colors = {'low': 'secondary', 'medium': 'warning
-text-dark', 'high': 'danger', 'critical': 'dark'} %}
-
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h1 class="h4 mb-0">Security alerts</h1>
+{#
+  Alert list for administrators: counts of new alerts by risk level, filters,
+  and one row per alert with its score, explanation and review status.
+#}
+{% extends "base.html" %}
+{% from "_components.html" import risk_chip, status_chip, role_chip %}
+{% block title %}Alerts · MediShield AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Security alerts</h1>
+    <p class="page-sub">Days when a user's activity looked different from the usual day for their role.</p>
+  </div>
   {% if can('review_alerts') %}
-  <form method="post" action="{{ url_for('alerts.run') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <button type="submit" class="btn btn-primary btn-sm">
-      Run analysis now
-    </button>
-  </form>
+  <div class="page-actions">
+    <form method="post" action="{{ url_for('alerts.run') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary">Run analysis now</button>
+    </form>
+  </div>
   {% endif %}
 </div>
 
-<div class="alert alert-warning py-2 small">
-  An alert is a <strong>warning for investigation</strong>, not proof of
-  malicious intent. Scores compare a user's day with the typical day for the
-  same role. Legitimate emergencies, new staff and unusual shifts can also be
-  flagged.
+<div class="note">
+  An alert is a <strong>warning for investigation</strong>, not proof of malicious intent.
+  Scores compare a user's day with the typical day for the same role. Legitimate emergencies,
+  new staff and unusual shifts can also be flagged.
 </div>
 
-<div class="row g-2 mb-3">
+{# New alerts by risk level #}
+<div class="stat-strip cols-4">
   {% for level in levels %}
-  <div class="col-6 col-md-3">
-    <div class="card text-center">
-      <div class="card-body py-2">
-        <div class="fs-4">{{ new_counts[level] }}</div>
-        <div class="small">
-          <span class="badge bg-{{ colors[level] }}">{{ level|upper }}</span>
-          new
-        </div>
-      </div>
-    </div>
+  <div class="stat">
+    <div class="stat-label">{{ risk_chip(level) }} new</div>
+    <div class="stat-value">{{ new_counts[level] }}</div>
   </div>
   {% endfor %}
 </div>
 
-<form method="get" class="row g-2 mb-3">
-  <div class="col-auto">
-    <select class="form-select form-select-sm" name="status">
-      <option value="new" {% if status == "new" %}selected{% endif %}>
-        New
-      </option>
-      <option
-        value="reviewed"
-        {%
-        if
-        status == "reviewed"
-        %}selected{%
-        endif
-        %}
-      >
-        Reviewed
-      </option>
-      <option value="all" {% if status == "all" %}selected{% endif %}>
-        All
-      </option>
-    </select>
-  </div>
-  <div class="col-auto">
-    <select class="form-select form-select-sm" name="risk">
-      <option value="">Any risk level</option>
-      {% for level in levels %}
-      <option value="{{ level }}" {% if risk == level %}selected{% endif %}>
-        {{ level|capitalize }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
-    <a class="btn btn-link btn-sm" href="{{ url_for('alerts.list_alerts') }}"
-      >Reset</a
-    >
-  </div>
+<form method="get" class="filter-bar">
+  <select class="form-select form-select-sm w-auto" name="status" aria-label="Status">
+    <option value="new" {% if status == 'new' %}selected{% endif %}>New</option>
+    <option value="reviewed" {% if status == 'reviewed' %}selected{% endif %}>Reviewed</option>
+    <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+  </select>
+  <select class="form-select form-select-sm w-auto" name="risk" aria-label="Risk level">
+    <option value="">Any risk level</option>
+    {% for level in levels %}
+    <option value="{{ level }}" {% if risk == level %}selected{% endif %}>{{ level|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
+  <a class="btn btn-link btn-sm" href="{{ url_for('alerts.list_alerts') }}">Reset</a>
 </form>
 
-<div class="table-responsive">
-  <table class="table table-sm table-bordered bg-white small">
-    <thead>
-      <tr>
-        <th>Risk</th>
-        <th>User</th>
-        <th>Role</th>
-        <th>Date (local)</th>
-        <th>Score / threshold</th>
-        <th>Why flagged</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead>
+        <tr><th>Risk</th><th>User</th><th>Role</th><th>Date (local)</th><th>Score / threshold</th>
+            <th>Why flagged</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
       {% for a in alerts %}
-      <tr class="alert-row">
-        <td>
-          <span class="badge bg-{{ colors[a.risk_level] }}"
-            >{{ a.risk_level|upper }}</span
-          >
-        </td>
-        <td>
-          {{ a.username or '-' }}<br /><span class="text-muted"
-            >{{ a.full_name or '' }}</span
-          >
-        </td>
-        <td>{{ a.user_role or '-' }}</td>
-        <td>{{ a.alert_date or '-' }}</td>
-        <td>
-          {{ '%.3f'|format(a.anomaly_score) if a.anomaly_score is not none else
-          '-' }} / {{ '%.3f'|format(a.threshold) if a.threshold is not none else
-          '-' }}
-        </td>
-        <td style="max-width: 420px">{{ a.explanation or '' }}</td>
-        <td>
-          {% if a.status == 'new' %}<span class="badge bg-primary">New</span> {%
-          else %}<span class="badge bg-success">Reviewed</span>
-          <div class="text-muted">{{ a.reviewer or '' }}</div>
-          {% endif %}
-        </td>
-        <td>
-          <a
-            class="btn btn-outline-primary btn-sm py-0"
-            href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}"
-            >Open</a
-          >
-        </td>
-      </tr>
+        <tr class="alert-row" data-risk="{{ a.risk_level }}">
+          <td>{{ risk_chip(a.risk_level) }}</td>
+          <td>{{ a.username or '-' }}<div class="muted small">{{ a.full_name or '' }}</div></td>
+          <td>{{ role_chip(a.user_role) }}</td>
+          <td>{{ a.alert_date or '-' }}</td>
+          <td>{{ '%.3f'|format(a.anomaly_score) if a.anomaly_score is not none else '-' }}
+              / {{ '%.3f'|format(a.threshold) if a.threshold is not none else '-' }}</td>
+          <td class="why">{{ a.explanation or '' }}</td>
+          <td>{{ status_chip(a.status) }}{% if a.status != 'new' %}<div class="muted small">{{ a.reviewer or '' }}</div>{% endif %}</td>
+          <td><a class="row-link" href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}">Open</a></td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="8" class="text-center text-muted">
-          No alerts match. Use <strong>Run analysis now</strong> after there is
-          some activity.
-        </td>
-      </tr>
+        <tr><td colspan="8" class="empty-row">
+          No alerts match. Use <strong>Run analysis now</strong> after there is some activity.
+        </td></tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </div>
 {% if alerts|length >= max_rows %}
-<p class="small text-muted">
-  Showing the first {{ max_rows }} alerts. Use the filters to narrow them.
-</p>
-{% endif %} {% endblock %}
+<p class="small muted mt-2">Showing the first {{ max_rows }} alerts. Use the filters to narrow them.</p>
+{% endif %}
+{% endblock %}
