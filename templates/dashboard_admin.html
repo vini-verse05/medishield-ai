@@ -1,20 +1,19 @@
-{#
-  Administrator dashboard: summary numbers, three charts, a role comparison,
-  the highest-risk new alerts and the latest activity. Shows counts only,
-  never patient data. Chart data is passed to dashboard.js as JSON.
-#}
-{% extends "base.html" %}
-{% from "_components.html" import risk_chip, result_chip, resource, role_chip %}
-{% block title %}Dashboard · MediShield AI{% endblock %}
-{% block content %}
-{% set c = data.cards %}
-
-{# One cell of the summary strip. A non-zero "alert" value is drawn in red. #}
-{% macro stat(label, value, hint='', alert=false) %}
+{# Administrator dashboard: summary numbers, three charts, a role comparison,
+the highest-risk new alerts and the latest activity. Shows counts only, never
+patient data. Chart data is passed to dashboard.js as JSON. #} {% extends
+"base.html" %} {% from "_components.html" import risk_chip, result_chip,
+resource, role_chip %} {% block title %}Dashboard · MediShield AI{% endblock %}
+{% block content %} {% set c = data.cards %} {# One cell of the summary strip. A
+non-zero "alert" value is drawn in red. #} {% macro stat(label, value, hint='',
+alert=false) %}
 <div class="stat">
   <div class="stat-label">{{ label }}</div>
-  <div class="stat-value {% if alert and value %}is-alert{% endif %}">{{ value }}</div>
-  {% if hint %}<div class="stat-hint">{{ hint }}</div>{% endif %}
+  <div class="stat-value {% if alert and value %}is-alert{% endif %}">
+    {{ value }}
+  </div>
+  {% if hint %}
+  <div class="stat-hint">{{ hint }}</div>
+  {% endif %}
 </div>
 {% endmacro %}
 
@@ -22,41 +21,175 @@
   <div>
     <h1>Administrator dashboard</h1>
     <p class="page-sub">
-      Last analysis: {% if data.last_analysis %}{{ data.last_analysis|localtime }} IST{% else %}never run{% endif %}
+      Last analysis: {% if data.last_analysis %}{{ data.last_analysis|localtime
+      }} IST{% else %}never run{% endif %}
     </p>
   </div>
   <div class="page-actions">
-    <a class="btn btn-outline-primary" href="{{ url_for('alerts.list_alerts') }}">Open alerts</a>
+    <a
+      class="btn btn-outline-primary"
+      href="{{ url_for('alerts.list_alerts') }}"
+      >Open alerts</a
+    >
     <form method="post" action="{{ url_for('alerts.run') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <button type="submit" class="btn btn-primary">Run analysis now</button>
     </form>
   </div>
 </div>
 
 <div class="note">
-  Flagged days are <strong>warnings for investigation</strong>, not proof of malicious intent.
-  Administrators see patient and record <em>counts</em> only; patient data is not available to this role.
+  Flagged days are <strong>warnings for investigation</strong>, not proof of
+  malicious intent. Administrators see patient and record <em>counts</em> only;
+  patient data is not available to this role.
 </div>
 
+<h2 class="section-title">Application Database Overview</h2>
+<p class="small text-muted">
+  Statistics from registered application accounts and SQLite records.
+</p>
+
 <div class="stat-strip cols-4">
-  {{ stat('Active users', c.active_users) }}
-  {{ stat('Patients', c.patients, 'count only') }}
-  {{ stat('Medical records', c.medical_records, 'count only') }}
-  {{ stat('Events today', c.events_today, 'local time') }}
-  {{ stat('Failed logins today', c.failed_logins_today, '', true) }}
-  {{ stat('Denied requests today', c.denied_today, '', true) }}
-  {{ stat('New alerts', c.new_alerts) }}
-  {{ stat('High or critical (new)', c.high_critical_new, '', true) }}
+  {{ stat('Active users', c.active_users) }} {{ stat('Patients', c.patients,
+  'count only') }} {{ stat('Medical records', c.medical_records, 'count only')
+  }} {{ stat('Events today', c.events_today, 'local time') }} {{ stat('Failed
+  logins today', c.failed_logins_today, '', true) }} {{ stat('Denied requests
+  today', c.denied_today, '', true) }} {{ stat('New alerts', c.new_alerts) }} {{
+  stat('High or critical (new)', c.high_critical_new, '', true) }}
 </div>
+
+{% if data.model_evaluation %}
+<div class="panel mb-4">
+  <h2 class="section-title">ML Model Evaluation</h2>
+
+  <p class="small text-muted">
+    Expanded synthetic dataset · {{ data.model_evaluation.runs }} evaluation
+    runs
+  </p>
+
+  <div class="stat-strip cols-4">
+    {{ stat('Precision', "%.3f"|format(data.model_evaluation.precision)) }} {{
+    stat('Recall', "%.3f"|format(data.model_evaluation.recall)) }} {{
+    stat('F1-score', "%.3f"|format(data.model_evaluation.f1)) }} {{
+    stat('ROC-AUC', "%.3f"|format(data.model_evaluation.roc_auc)) }}
+  </div>
+
+  <p class="mt-3 mb-0">
+    Global baseline F1-score:
+    <strong> {{ "%.3f"|format(data.model_evaluation.baseline_f1) }} </strong>
+  </p>
+</div>
+{% endif %} {% if data.synthetic_dataset %}
+<div class="panel mb-4">
+  <h2 class="section-title">Synthetic ML Dataset Overview</h2>
+
+  <p class="small text-muted">
+    Generated healthcare activity data · {{ data.synthetic_dataset.days }} days
+    · {{ data.synthetic_dataset.start_date }} to {{
+    data.synthetic_dataset.split_date }} (first test day)
+  </p>
+
+  <div class="stat-strip cols-4">
+    {{ stat('Synthetic users', data.synthetic_dataset.users) }} {{
+    stat('Activity events', "{:,}".format(data.synthetic_dataset.events)) }} {{
+    stat('User-days', "{:,}".format(data.synthetic_dataset.user_days)) }} {{
+    stat('Anomalous user-days', "{:,}".format(data.synthetic_dataset.anomalies),
+    '', true) }}
+  </div>
+
+  <h3 class="section-title mt-4">Training and Testing Distribution</h3>
+
+  <div class="table-responsive">
+    <table class="table data-table">
+      <thead>
+        <tr>
+          <th>Dataset split</th>
+          <th>User-days</th>
+          <th>Anomalous days</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, values in data.synthetic_dataset.splits.items() %}
+        <tr>
+          <td>{{ name|capitalize }}</td>
+          <td>{{ values.user_days }}</td>
+          <td>{{ values.anomalies }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-lg-6">
+      <h3 class="section-title">Synthetic Users by Role</h3>
+
+      <div class="table-responsive">
+        <table class="table data-table">
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Users</th>
+              <th>User-days</th>
+              <th>Anomalies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in data.synthetic_dataset.roles %}
+            <tr>
+              <td>{{ role_chip(r.role) }}</td>
+              <td>{{ r.users }}</td>
+              <td>{{ r.user_days }}</td>
+              <td>{{ r.anomalies }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <h3 class="section-title">Anomalies by Scenario</h3>
+
+      <div class="table-responsive">
+        <table class="table data-table">
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Anomalous user-days</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in data.synthetic_dataset.scenarios %}
+            <tr>
+              <td>{{ s.name|replace('_', ' ')|title }}</td>
+              <td>{{ s.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <p class="small text-muted mb-0">
+    These anomaly counts represent the generated dataset labels, not the number
+    of anomalies detected by the model. Synthetic data is used for ML
+    experimentation and does not represent actual patient activity.
+  </p>
+</div>
+{% endif %}
 
 <div class="row g-3 mb-3">
   <div class="col-lg-8">
     <div class="panel h-100">
       <h2 class="section-title">Activity, last {{ data.window_days }} days</h2>
       <div class="chart-box">
-        <canvas id="chartActivity" role="img"
-                aria-label="Line chart of daily events and of failed or denied events"></canvas>
+        <canvas
+          id="chartActivity"
+          role="img"
+          aria-label="Line chart of daily events and of failed or denied events"
+        ></canvas>
       </div>
     </div>
   </div>
@@ -64,8 +197,11 @@
     <div class="panel h-100">
       <h2 class="section-title">Alerts by risk level</h2>
       <div class="chart-box">
-        <canvas id="chartRisk" role="img"
-                aria-label="Bar chart of new and reviewed alerts by risk level"></canvas>
+        <canvas
+          id="chartRisk"
+          role="img"
+          aria-label="Bar chart of new and reviewed alerts by risk level"
+        ></canvas>
       </div>
     </div>
   </div>
@@ -76,8 +212,11 @@
     <div class="panel h-100">
       <h2 class="section-title">Model results: flagged and normal user-days</h2>
       <div class="chart-box">
-        <canvas id="chartFlagged" role="img"
-                aria-label="Stacked bar chart of normal and flagged user-days per day"></canvas>
+        <canvas
+          id="chartFlagged"
+          role="img"
+          aria-label="Stacked bar chart of normal and flagged user-days per day"
+        ></canvas>
       </div>
     </div>
   </div>
@@ -85,14 +224,25 @@
     <div class="panel h-100">
       <h2 class="section-title">Roles, last {{ data.window_days }} days</h2>
       <table class="table data-table">
-        <thead><tr><th>Role</th><th>Users</th><th>Events</th><th>Failed</th><th>Flagged</th></tr></thead>
-        <tbody>
-        {% for r in data.roles %}
+        <thead>
           <tr>
-            <td>{{ role_chip(r.role) }}</td><td>{{ r.active_users }}</td><td>{{ r.events }}</td>
-            <td>{{ r.failures }}</td><td>{{ r.flagged_days }}</td>
+            <th>Role</th>
+            <th>Users</th>
+            <th>Events</th>
+            <th>Failed</th>
+            <th>Flagged</th>
           </tr>
-        {% endfor %}
+        </thead>
+        <tbody>
+          {% for r in data.roles %}
+          <tr>
+            <td>{{ role_chip(r.role) }}</td>
+            <td>{{ r.active_users }}</td>
+            <td>{{ r.events }}</td>
+            <td>{{ r.failures }}</td>
+            <td>{{ r.flagged_days }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
       <a class="small" href="{{ url_for('admin.users') }}">Full user list</a>
@@ -104,20 +254,37 @@
 <div class="table-wrap mb-4">
   <div class="table-responsive">
     <table class="table data-table">
-      <thead><tr><th>Risk</th><th>User</th><th>Role</th><th>Date</th><th>Why flagged</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th>Risk</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>Date</th>
+          <th>Why flagged</th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody>
-      {% for a in data.recent_alerts %}
+        {% for a in data.recent_alerts %}
         <tr data-risk="{{ a.risk_level }}">
           <td>{{ risk_chip(a.risk_level) }}</td>
           <td>{{ a.username or '-' }}</td>
           <td>{{ role_chip(a.user_role) }}</td>
           <td>{{ a.alert_date or '-' }}</td>
           <td class="why">{{ (a.explanation or '')|truncate(150) }}</td>
-          <td><a class="row-link" href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}">Open</a></td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('alerts.alert_detail', alert_id=a.id) }}"
+              >Open</a
+            >
+          </td>
         </tr>
-      {% else %}
-        <tr><td colspan="6" class="empty-row">No new alerts.</td></tr>
-      {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="empty-row">No new alerts.</td>
+        </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
@@ -127,9 +294,18 @@
 <div class="table-wrap">
   <div class="table-responsive">
     <table class="table data-table">
-      <thead><tr><th>Time (IST)</th><th>Actor</th><th>Role</th><th>Action</th><th>Resource</th><th>Result</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Time (IST)</th>
+          <th>Actor</th>
+          <th>Role</th>
+          <th>Action</th>
+          <th>Resource</th>
+          <th>Result</th>
+        </tr>
+      </thead>
       <tbody>
-      {% for e in data.recent_activity %}
+        {% for e in data.recent_activity %}
         <tr>
           <td>{{ e.timestamp|localtime }}</td>
           <td>{{ e.actor or '-' }}</td>
@@ -138,18 +314,24 @@
           <td>{{ resource(e.resource_type, e.resource_id) }}</td>
           <td>{{ result_chip(e.success) }}</td>
         </tr>
-      {% else %}
-        <tr><td colspan="6" class="empty-row">No activity yet.</td></tr>
-      {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="empty-row">No activity yet.</td>
+        </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-<p class="mt-2"><a class="small" href="{{ url_for('admin.audit_logs') }}">Open the full audit log</a></p>
-{% endblock %}
-
-{% block scripts %}
-<script id="dash-data" type="application/json">{{ data.chart|tojson }}</script>
+<p class="mt-2">
+  <a class="small" href="{{ url_for('admin.audit_logs') }}"
+    >Open the full audit log</a
+  >
+</p>
+{% endblock %} {% block scripts %}
+<script id="dash-data" type="application/json">
+  {{ data.chart|tojson }}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

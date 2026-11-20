@@ -3,6 +3,12 @@ dashboards. Nothing here writes to the database.
 
 All "days" are local days (see TIMEZONE_OFFSET_MINUTES in ml/settings.py), and
 the seeded SAMPLE DATA placeholder rows are excluded, as in analysis.py."""
+
+import json
+import os
+import csv
+from collections import Counter
+
 from datetime import datetime, timedelta, timezone
 
 from analysis import SAMPLE_MARKER
@@ -135,14 +141,16 @@ def admin_dashboard(db, today=None, days=WINDOW_DAYS):
         (RECENT_ALERTS,)).fetchall()
 
     return {
-        "window_days": days,
-        "cards": cards,
-        "chart": chart,
-        "roles": roles,
-        "recent_activity": recent_activity,
-        "recent_alerts": recent_alerts,
-        "last_analysis": one("SELECT MAX(scored_at) FROM analysis_results"),
-    }
+    "window_days": days,
+    "cards": cards,
+    "chart": chart,
+    "roles": roles,
+    "recent_activity": recent_activity,
+    "recent_alerts": recent_alerts,
+    "last_analysis": one("SELECT MAX(scored_at) FROM analysis_results"),
+    "model_evaluation": get_model_evaluation(),
+    "synthetic_dataset": get_synthetic_dataset_summary(),
+}
 
 
 def staff_dashboard(db, user_id, include_patients, include_records, today=None):
@@ -165,4 +173,92 @@ def staff_dashboard(db, user_id, include_patients, include_records, today=None):
             "SELECT id, timestamp, action, resource_type, resource_id, success "
             f"FROM activity_logs WHERE user_id = ? AND {REAL_ROWS} "
             "ORDER BY id DESC LIMIT 8", (user_id, SAMPLE_MARKER)).fetchall(),
+    }
+
+def get_model_evaluation():
+    path = os.path.join(
+        settings.REPORT_DIR,
+        "evaluation_multiseed.json"
+    )
+
+    if not os.path.exists(path):
+        return None
+
+    with open(path, encoding="utf-8") as f:
+        result = json.load(f)
+
+    return {
+        "runs": result["n_runs"],
+        "precision": result["per_role_models"]["precision"]["mean"],
+        "recall": result["per_role_models"]["recall"]["mean"],
+        "f1": result["per_role_models"]["f1"]["mean"],
+        "roc_auc": result["per_role_models"]["roc_auc"]["mean"],
+        "baseline_f1": result["global_baseline"]["f1"]["mean"]
+    }
+
+
+def get_synthetic_dataset_summary():
+    """Read summary statistics from the synthetic ML dataset."""
+
+    meta_path = settings.META_PATH
+    labels_path = settings.LABELS_PATH
+
+    if not os.path.exists(meta_path) or not os.path.exists(labels_path):
+        return None
+
+    with open(meta_path, encoding="utf-8") as f:
+        meta = json.load(f)
+
+    roles = {
+        role: {
+            "users": count,
+            "user_days": 0,
+            "anomalies": 0
+        }
+        for role, count in meta["users_per_role"].items()
+    }
+
+    splits = {
+        "train": {"user_days": 0, "anomalies": 0},
+        "test": {"user_days": 0, "anomalies": 0}
+    }
+
+    scenarios = Counter()
+    total_anomalies = 0
+    total_user_days = 0
+
+    with open(labels_path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            role = row["role"]
+            split = row["split"]
+            anomaly = int(row["is_anomaly"])
+
+            total_user_days += 1
+            roles[role]["user_days"] += 1
+            splits[split]["user_days"] += 1
+
+            if anomaly:
+                total_anomalies += 1
+                roles[role]["anomalies"] += 1
+                splits[split]["anomalies"] += 1
+                scenarios[row["scenario"]] += 1
+
+    return {
+        "users": sum(meta["users_per_role"].values()),
+        "events": meta["n_events"],
+        "days": meta["n_days"],
+        "user_days": total_user_days,
+        "anomalies": total_anomalies,
+        "normal_days": total_user_days - total_anomalies,
+        "start_date": meta["start_date"],
+        "split_date": meta["split_date"],
+        "roles": [
+            {"role": role, **values}
+            for role, values in roles.items()
+        ],
+        "splits": splits,
+        "scenarios": [
+            {"name": name, "count": count}
+            for name, count in scenarios.most_common()
+        ]
     }
