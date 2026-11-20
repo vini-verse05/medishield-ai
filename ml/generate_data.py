@@ -21,13 +21,13 @@ TS_FORMAT = "%Y-%m-%d %H:%M:%S"
 # Normal behaviour per role. Counts are daily Poisson means; shifts are
 # (mean login hour, standard deviation) in local time.
 PROFILES = {
-    "admin": {"users": 2, "weekday_p": 0.90, "weekend_p": 0.10, "shifts": [(10.0, 1.2)],
+    "admin": {"users": 10, "weekday_p": 0.90, "weekend_p": 0.10, "shifts": [(10.0, 1.2)],
               "views": 0, "searches": 0, "lists": 0, "updates": 0, "creates": 0, "audits": 5},
-    "doctor": {"users": 10, "weekday_p": 0.92, "weekend_p": 0.15, "shifts": [(9.0, 1.0)],
+    "doctor": {"users": 30, "weekday_p": 0.92, "weekend_p": 0.15, "shifts": [(9.0, 1.0)],
                "views": 14, "searches": 5, "lists": 2, "updates": 4, "creates": 3, "audits": 0},
-    "nurse": {"users": 14, "weekday_p": 0.90, "weekend_p": 0.35, "shifts": [(7.0, 0.7), (14.0, 0.7)],
+    "nurse": {"users": 40, "weekday_p": 0.90, "weekend_p": 0.35, "shifts": [(7.0, 0.7), (14.0, 0.7)],
               "views": 20, "searches": 6, "lists": 3, "updates": 0, "creates": 6, "audits": 0},
-    "receptionist": {"users": 6, "weekday_p": 0.92, "weekend_p": 0.20, "shifts": [(8.5, 0.8)],
+    "receptionist": {"users": 20, "weekday_p": 0.92, "weekend_p": 0.20, "shifts": [(8.5, 0.8)],
                      "views": 16, "searches": 12, "lists": 4, "updates": 5, "creates": 4, "audits": 0},
 }
 
@@ -171,7 +171,7 @@ def build_day(rng, user_id, role, day, params):
     return events
 
 
-def generate(seed=settings.RANDOM_SEED, n_days=120, train_days=90,
+def generate(seed=settings.RANDOM_SEED, n_days=180, train_days=150,
              train_rate=0.03, test_rate=0.08, start_date=date(2025, 1, 6)):
     """Returns (events_df, labels_df, meta). Same seed -> identical output.
 
@@ -237,8 +237,8 @@ def save_dataset(events, labels, meta):
 def main():
     parser = argparse.ArgumentParser(description="Generate synthetic activity logs.")
     parser.add_argument("--seed", type=int, default=settings.RANDOM_SEED)
-    parser.add_argument("--days", type=int, default=120)
-    parser.add_argument("--train-days", type=int, default=90)
+    parser.add_argument("--days", type=int, default=180)
+    parser.add_argument("--train-days", type=int, default=150)
     args = parser.parse_args()
 
     events, labels, meta = generate(seed=args.seed, n_days=args.days,
