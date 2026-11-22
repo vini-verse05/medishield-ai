@@ -7,3 +7,6 @@ instance/
 .vscode/
 ml/data/
 ml/models/
+.idea/
+.DS_Store
+*.log
