@@ -13,9 +13,8 @@
 - Future work: map CERT events onto these features for external validation.
 
 ## 2. Synthetic data construction
-
-- 32 synthetic users (2 admin, 10 doctors, 14 nurses, 6 receptionists), 120 days,
-  fixed random seed (reproducible).
+- 100 synthetic users (10 admin, 30 doctors, 40 nurses, 20 receptionists), 180 days
+  (first 150 for training, last 30 for testing), fixed random seed 42 (reproducible).
 - Normal behaviour per role: shift times, Poisson-distributed daily counts of patient
   views, searches, list requests, updates and record creations, an occasional typo'd
   login, weekday/weekend work probability.
